@@ -6,17 +6,21 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Product Sans"', 'sans-serif'],
+      },
       colors: {
-        background: "#05131C", // Основной фон страницы
-        primary: {
-          DEFAULT: "#FF6D06",  // Акцентный оранжевый
-          hover: "#E05A00",
+        background: "#071018",      // Основной тёмный фон
+        lavender: {
+          DEFAULT: "#DDD2FD",      // Лавандовый цвет кнопок и обводок из Figma
         },
-        card: "#1E2A32",       // Тёмные карточки направлений
-        cyan: {
-          DEFAULT: "#64DCEC",  // Голубой акцент и обводки
-          card: "#64DCEC",     // Карточки «Интерактивная карта знаний»
-        },
+        brand: {
+          orange: "#FF7116",        // Из UX-kit
+          yellow: "#FFF886",        // Из UX-kit
+          blue: "#99C3FD",          // Из UX-kit
+          lavender: "#DDD2FD",      // Из UX-kit
+          cream: "#FBF9F4",         // Светлые карточки профессий
+        }
       },
     },
   },

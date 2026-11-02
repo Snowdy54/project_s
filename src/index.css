@@ -2,10 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+/* Product Sans Regular (перекрывает веса от 100 до 700) */
+@font-face {
+  font-family: 'Product Sans';
+  src: url('/fonts/ProductSans-Regular.ttf') format('truetype');
+  font-weight: 100 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Product Sans Black */
+@font-face {
+  font-family: 'Product Sans';
+  src: url('/fonts/ProductSans-Black.ttf') format('truetype');
+  font-weight: 800 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Пиксельный шрифт UnifontExMono */
+@font-face {
+  font-family: 'UnifontExMono';
+  src: url('/fonts/UnifontExMono.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root, body {
   margin: 0;
-  background-color: #0B131B;
-  color: #F8FAFC;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 0;
+  background-color: #071018;
+  color: #FFFFFF;
+  font-family: 'Product Sans', sans-serif !important;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Пиксельный заголовок строго в 1 пиксель без размытия */
+.font-pixel {
+  font-family: 'UnifontExMono', monospace !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
 }
