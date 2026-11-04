@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package ai_service;
+option go_package = "github.com/Snowdy54/project_s/backend/pkg/api;ai_service";
+
+service Ai {
+    rpc GetAiPersonalization (GetAiPersonalizationRequest) returns (GetAiPersonalizationResponse) {}
+    //rpc PostAiResponce (PostAiResponceRequest) returns (PostAiResponceResponce) {}
+}
+
+message GetAiPersonalizationRequest {
+    repeated User_skills skills = 1;
+    repeated Skill_dependencies skill_dependencies = 2;
+    Profession_skills profession_id = 3;
+    string user_message = 4;
+}
+
+message GetAiPersonalizationResponse {
+    repeated Skill_personalization skill_personalization = 1;
+    string ai_message = 2;
+}
+
+message Skill_dependencies {
+    int64 skill_id = 1;
+    string skill_name = 2;
+    int64 skill_dependency_id = 3;
+    string skill_dependency_name = 4;
+}
+
+message User_skills {
+    int64 skill_id = 1;
+    string skill_name = 2;
+}
+
+message Skill_personalization {
+    int64 skill_id = 1;
+    string skill_name = 2;
+    string skill_status = 3;
+}
+
+message Profession_skills {
+    int64 profession_id = 1;
+    string profession_name = 2;
+    repeated User_skills profession_skill = 3;
+}
+
+//message PostAiResponceRequest {
+//}

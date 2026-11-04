@@ -1,4 +1,0 @@
-syntax = "proto3";
-
-package skillmap_service;
-option go_package = "github.com/Snowdy54/project_s/backend/pkg/api;skillmap_service";
