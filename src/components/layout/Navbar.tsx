@@ -3,62 +3,75 @@ import { Link, useLocation } from 'react-router-dom';
 
 export const Navbar: React.FC = () => {
   const location = useLocation();
+  const currentPath = location.pathname;
 
-  const navLinks = [
-    { label: 'Главная', path: '/' },
-    { label: 'Roadmaps', path: '/roadmap' },
-    { label: 'Мое обучение', path: '/profile' },
-  ];
+  // Строгое разделение активных страниц:
+  const isHomeActive = currentPath === '/';
+  const isRoadmapsActive = currentPath === '/roadmaps';
+  // Вкладка «Мое обучение» активна только на странице персональной интерактивной карты
+  const isMyLearningActive = currentPath === '/roadmap' || currentPath === '/my-learning';
 
   return (
-    <header className="w-full pt-5 pb-3">
-      {/* Ровно 90px от краев экрана без лишнего max-w */}
-      <div className="w-full px-6 lg:px-[90px] flex items-center justify-between h-[43px]">
-        
-        {/* Логотип: UnifontExMono в 1 пиксель, без размытия */}
-        <Link to="/" className="font-pixel text-[32px] font-normal tracking-normal text-white select-none">
-          SkillMap
-        </Link>
+    <header className="w-full px-6 lg:px-[90px] pt-6 pb-4 flex items-center justify-between select-none">
+      {/* Логотип SkillMap */}
+      <Link
+        to="/"
+        className="font-pixel text-2xl lg:text-[28px] text-[#FDFCEA] tracking-wide hover:opacity-90 transition"
+      >
+        SkillMap
+      </Link>
 
-        {/* 3 кнопки меню на шрифте Product Sans */}
-        <nav className="flex items-center gap-3">
-          {navLinks.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`h-[43px] px-7 rounded-full flex items-center justify-center text-[15px] font-normal transition-all duration-150 ${
-                  isActive
-                    ? 'bg-[#DDD2FD] text-black shadow-sm'
-                    : 'bg-transparent text-white border-2 border-[#DDD2FD] hover:bg-[#DDD2FD]/10'
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Аватар 41x41 px с иконкой цвета #FDFCEA */}
+      {/* Центральное навигационное меню */}
+      <nav className="flex items-center gap-2 p-1.5 rounded-full border border-white/10 bg-[#05131C]">
         <Link
-          to="/profile"
-          aria-label="Личный кабинет"
-          className="w-[41px] h-[41px] rounded-full shrink-0 flex items-center justify-center transition hover:opacity-90"
+          to="/"
+          className={`h-10 px-6 rounded-full flex items-center text-sm font-medium transition ${
+            isHomeActive
+              ? 'bg-[#DDD2FD] text-black font-bold shadow-sm'
+              : 'text-white hover:text-white/80'
+          }`}
         >
-          <svg width="41" height="41" viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20.5" cy="20.5" r="20.5" fill="#DDD2FD" />
-            <circle cx="20.5" cy="20.5" r="14.5" fill="#071018" />
-            {/* Голова #FDFCEA */}
-            <circle cx="20.5" cy="17.5" r="3.8" fill="#FDFCEA" />
-            {/* Силуэт тела #FDFCEA */}
-            <path
-              d="M14.5 26.5C14.5 23.5 17 22.5 20.5 22.5C24 22.5 26.5 23.5 26.5 26.5V27.5H14.5V26.5Z"
-              fill="#FDFCEA"
-            />
-          </svg>
+          Главная
         </Link>
 
+        <Link
+          to="/roadmaps"
+          className={`h-10 px-6 rounded-full flex items-center text-sm font-medium transition ${
+            isRoadmapsActive
+              ? 'bg-[#DDD2FD] text-black font-bold shadow-sm'
+              : 'text-white hover:text-white/80'
+          }`}
+        >
+          Roadmaps
+        </Link>
+
+        <Link
+          to="/roadmap"
+          className={`h-10 px-6 rounded-full flex items-center text-sm font-medium transition ${
+            isMyLearningActive
+              ? 'bg-[#DDD2FD] text-black font-bold shadow-sm'
+              : 'text-white hover:text-white/80'
+          }`}
+        >
+          Мое обучение
+        </Link>
+      </nav>
+
+      {/* Иконка профиля */}
+      <div className="w-10 h-10 rounded-full border border-white/20 bg-[#0E1A26] flex items-center justify-center text-white hover:border-white/50 transition cursor-pointer">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
       </div>
     </header>
   );
