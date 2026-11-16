@@ -139,12 +139,16 @@ func HandleOnboarding(db *sqlx.DB) http.HandlerFunc {
 
 		// 3. Сохраняем новые навыки в таблицу прогресса пользователя
 		for _, skillID := range aiSuggestedSkillIDs {
-			// Простой INSERT. В продакшене тут стоит добавить ON CONFLICT для защиты от дубликатов
-			query := `INSERT INTO users_skill_progress (user_id, skill_id, status) VALUES ($1, $2, 'В процессе')`
+			// Используем ON CONFLICT DO NOTHING, чтобы не перезаписать текущий прогресс,
+			// если этот навык у пользователя уже есть.
+			query := `
+				INSERT INTO users_skill_progress (user_id, skill_id, status) 
+				VALUES ($1, $2, 'В процессе')
+				ON CONFLICT (user_id, skill_id) DO NOTHING
+			`
 			_, err := db.Exec(query, userID, skillID)
 			if err != nil {
-				log.Println("Ошибка добавления навыка в БД:", err)
-				// Не прерываем цикл, пытаемся добавить остальные
+				log.Printf("Ошибка добавления навыка (ID: %d) в БД: %v\n", skillID, err)
 			}
 		}
 
@@ -152,5 +156,53 @@ func HandleOnboarding(db *sqlx.DB) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status": "success", "message": "Профиль успешно обновлен"}`))
+	}
+}
+
+// Структура для получения нового статуса от фронтенда
+type UpdateStatusRequest struct {
+	Status string `json:"status"` // ожидаем "not_started", "in_progress" или "completed"
+}
+
+// HandleUpdateSkillStatus обновляет статус конкретного навыка
+func HandleUpdateSkillStatus(db *sqlx.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// 1. Получаем ID навыка из URL (например, /api/skills/5/status)
+		skillIDStr := chi.URLParam(r, "skillID")
+		skillID, err := strconv.Atoi(skillIDStr)
+		if err != nil {
+			http.Error(w, `{"error": "Неверный ID навыка"}`, http.StatusBadRequest)
+			return
+		}
+
+		// 2. Читаем тело запроса
+		var req UpdateStatusRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, `{"error": "Ошибка чтения JSON"}`, http.StatusBadRequest)
+			return
+		}
+
+		// (Опционально) Здесь можно добавить валидацию req.Status, например через switch
+
+		// 3. Выполняем UPSERT в базе данных
+		query := `
+			INSERT INTO users_skill_progress (user_id, skill_id, status) 
+			VALUES ($1, $2, $3)
+			ON CONFLICT (user_id, skill_id) 
+			DO UPDATE SET status = EXCLUDED.status
+		`
+		_, err = db.Exec(query, 1, skillID, req.Status) // Хардкодим user_id = 1
+		if err != nil {
+			log.Printf("ОШИБКА SQL (UPSERT status): %v\n", err)
+			http.Error(w, `{"error": "Ошибка при сохранении прогресса"}`, http.StatusInternalServerError)
+			return
+		}
+
+		// 4. Отправляем успешный ответ
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"message": "Статус успешно обновлен",
+		})
 	}
 }

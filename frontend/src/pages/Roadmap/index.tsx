@@ -1,13 +1,89 @@
 import { ReactFlow, Background, Controls } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { useEffect, useState } from 'react';
 
-const initialNodes = [
-  { id: '1', position: { x: 100, y: 200 }, data: { label: 'HTML5 & CSS' }, className: 'bg-surface border-2 border-cyan text-white p-3 rounded-xl shadow-lg shadow-cyan/20' },
-  { id: '2', position: { x: 350, y: 120 }, data: { label: 'TypeScript' }, className: 'bg-surface border-2 border-cyan text-white p-3 rounded-xl shadow-lg shadow-cyan/20' },
-];
-const initialEdges = [{ id: 'e1-2', source: '1', target: '2', animated: true, style: { stroke: '#38BDF8', strokeWidth: 2 } }];
+// Интерфейс для данных с твоего Go-бэкенда
+interface GraphNode {
+  skill_id: number;
+  skill_name: string;
+  ai_responce_for_skill: string;
+  status: string;
+  skill_dependens: number[];
+}
 
 export const RoadmapPage = () => {
+  // Состояния для хранения реальных данных из БД
+  const [nodes, setNodes] = useState<GraphNode[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Делаем запрос к Go-бэкенду при загрузке страницы
+  useEffect(() => {
+    const fetchGraph = async () => {
+      try {
+        const response = await fetch('/api/graph/1');
+        if (!response.ok) {
+          throw new Error('Ошибка при загрузке графа с бэкенда');
+        }
+        const data = await response.json();
+        setNodes(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGraph();
+  }, []);
+
+  // Пока данные грузятся, показываем заглушку
+  if (loading) {
+    return (
+      <div className="w-full h-[calc(100vh-64px)] bg-background flex items-center justify-center text-white">
+        Загрузка карты навыков...
+      </div>
+    );
+  }
+
+  // Если сервер упал или выдал ошибку, показываем ее
+  if (error) {
+    return (
+      <div className="w-full h-[calc(100vh-64px)] bg-background flex items-center justify-center text-red-500">
+        Ошибка: {error}
+      </div>
+    );
+  }
+
+  // Трансформируем данные из БД (GraphNode) в формат, который понимает ReactFlow
+  const flowNodes = nodes.map((n, index) => ({
+    id: n.skill_id.toString(),
+    position: { x: 100 + index * 300, y: 200 + (index % 2 === 0 ? -100 : 100) },
+    data: { label: n.skill_name }, // Название навыка из БД
+    // Явно задаем стили для узла, перебивая белый фон по умолчанию
+    style: {
+      backgroundColor: '#16202A', // Темно-синий фон под цвет сайта
+      color: '#FFFFFF',           // Белый текст
+      border: '2px solid #38BDF8',// Голубая рамка (cyan)
+      borderRadius: '12px',       // Скругленные углы
+      padding: '16px',
+      fontSize: '14px',
+      fontWeight: 'bold',
+      boxShadow: '0 4px 12px rgba(56, 189, 248, 0.2)' // Легкое свечение
+    }
+  }));
+
+  // Строим связи (ребра) на основе массива skill_dependens из БД
+  const flowEdges = nodes.flatMap(n => 
+    n.skill_dependens.map(depId => ({
+      id: `e${n.skill_id}-${depId}`,
+      source: depId.toString(), // От кого зависит
+      target: n.skill_id.toString(), // Кто зависит
+      animated: true,
+      style: { stroke: '#38BDF8', strokeWidth: 2 }
+    }))
+  );
+
   return (
     <div className="w-full h-[calc(100vh-64px)] relative bg-background">
       {/* Виджет прогресса из Figma */}
@@ -24,7 +100,7 @@ export const RoadmapPage = () => {
         </div>
       </div>
 
-      <ReactFlow nodes={initialNodes} edges={initialEdges} fitView>
+      <ReactFlow nodes={flowNodes} edges={flowEdges} fitView>
         <Background color="#1E2E3E" gap={20} />
         <Controls />
       </ReactFlow>

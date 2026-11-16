@@ -28,6 +28,15 @@ func main() {
 
 	// 2. Инициализируем роутер chi
 	r := chi.NewRouter()
+	r.Use(cors.Handler(cors.Options{
+		// Разрешаем запросы с любых локальных портов (где обычно крутится фронт)
+		AllowedOrigins:   []string{"http://localhost:*", "http://127.0.0.1:*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300, // Кэшируем настройки CORS на 5 минут
+	}))
 
 	// 3. Подключаем наши эндпоинты, передавая им готовое подключение к БД
 	r.Get("/api/graph", app.HandleGetGraph(db))
@@ -38,15 +47,12 @@ func main() {
 
 	// НОВЫЙ ЭНДПОИНТ:
 	r.Post("/api/onboarding", app.HandleOnboarding(db))
-	r.Use(cors.Handler(cors.Options{
-		// Разрешаем запросы с любых локальных портов (где обычно крутится фронт)
-		AllowedOrigins:   []string{"http://localhost:*", "http://127.0.0.1:*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
-		MaxAge:           300, // Кэшируем настройки CORS на 5 минут
-	}))
+	r.Get("/api/graph", app.HandleGetGraph(db))
+	r.Get("/api/graph/{userID}", app.HandleGetGraph(db))
+	r.Post("/api/onboarding", app.HandleOnboarding(db))
+
+	// Наш новый эндпоинт для обновления статуса
+	r.Put("/api/skills/{skillID}/status", app.HandleUpdateSkillStatus(db))
 
 	// 4. Запускаем сервер на порту 8080
 	log.Println("Сервер запущен на http://localhost:8080")
