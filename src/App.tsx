@@ -1,16 +1,9 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Navbar } from './components/layout/Navbar';
-import * as HomeModule from './pages/Home';
+import { HomePage } from './pages/Home';
 import { RoadmapPage } from './pages/Roadmap';
 import { ProjectsPage } from './pages/Projects';
 import { ProjectDetailPage } from './pages/Projects/ProjectDetail';
-
-const HomeComponent =
-  (HomeModule as any).HomePage ||
-  (HomeModule as any).Home ||
-  (HomeModule as any).default ||
-  (() => <div className="p-8">Главная страница</div>);
 
 function App() {
   return (
@@ -19,7 +12,7 @@ function App() {
         <Navbar />
 
         <Routes>
-          <Route path="/" element={<HomeComponent />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/roadmap" element={<RoadmapPage />} />
           <Route path="/roadmaps" element={<RoadmapPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
