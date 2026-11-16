@@ -56,37 +56,44 @@ export const initialFrontendNodes: SkillNodeData[] = [
     y: 233,
     labelPosition: 'bottom',
     isRoot: true,
-    description: 'Разбираем, как браузер и сервер находят общий язык. Вы узнаете, что на самом деле происходит, когда вы вводите адрес сайта в строку поиска: как работает DNS, что такое HTTP-запросы, клиент-серверная архитектура и базовые принципы REST API. Это база, без которой невозможно писать осознанный код.',
+    description:
+      'Web-фундамент — это базовое понимание того, как работает интернет «под капотом»: клиент-серверная архитектура, DNS, HTTP-запросы и REST API.',
+    whereUsed: [
+      'При отладке сетевых ошибок и проблем с загрузкой ресурсов.',
+      'При проектировании API и взаимодействии фронтенда с бэкендом.',
+      'Как обязательная база для успешного прохождения технических собеседований.',
+    ],
+    entryLevel: 'Начинающий. Стартовая точка для любого web-разработчика.',
     prerequisites: [
       'Нет (Стартовый узел / Root Node).',
-      'Требования: Базовое умение пользоваться браузером и здоровое любопытство к тому, как устроены сайты изнутри.'
+      'Требования: Базовое умение пользоваться браузером и здоровое любопытство к тому, как устроены сайты изнутри.',
     ],
     resources: [
       {
         id: 'r1',
-        title: 'MDN Web Docs — раздел «Как работает веб» (How the web works)',
-        type: 'статья',
+        title: 'MDN Web Docs — «How the web works»',
+        type: 'официальный сайт',
         price: 'Бесплатно',
         url: 'https://developer.mozilla.org/ru/docs/Learn/Common_questions/Web_mechanisms/How_does_the_Internet_work',
-        sourceName: 'MDN Web Docs'
+        sourceName: 'MDN Web Docs',
       },
       {
         id: 'r2',
-        title: 'Статья «Что происходит, когда вы вводите URL в браузер»',
+        title: 'Что происходит, когда вводишь URL',
         type: 'статья',
         price: 'Бесплатно',
         url: 'https://habr.com/ru/articles/522544/',
-        sourceName: 'Хабр'
+        sourceName: 'Хабр',
       },
       {
         id: 'r3',
-        title: 'YouTube-каналы (Ulearn.me, Владилен Минин) — плейлисты для начинающих',
-        type: 'видео',
-        price: 'Бесплатно',
-        url: 'https://youtube.com',
-        sourceName: 'YouTube'
-      }
-    ]
+        title: 'Профессиональная вёрстка сайтов',
+        type: 'курс',
+        price: 'Платно',
+        url: 'https://htmlacademy.ru/',
+        sourceName: 'HTML Academy',
+      },
+    ],
   },
   {
     id: 'html-semantics',
@@ -628,3 +635,4 @@ export const initialFrontendEdges: SkillEdgeData[] = [
   { id: 'e25', source: 'nextjs', target: 'perf-opt', isDashed: true },
   { id: 'e26', source: 'nextjs', target: 'middleware-auth', isDashed: true }
 ];
+

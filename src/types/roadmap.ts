@@ -21,13 +21,13 @@ export type NodeStatus = 'not_started' | 'in_progress' | 'completed' | 'skipped'
 
 export type NodeDifficulty = 'beginner' | 'advanced' | 'deep';
 
-export type NodeCategory = 
-  | 'теория' 
-  | 'верстка' 
-  | 'программирование' 
-  | 'инструменты' 
-  | 'фреймворки' 
-  | 'архитектура и данные' 
+export type NodeCategory =
+  | 'теория'
+  | 'верстка'
+  | 'программирование'
+  | 'инструменты'
+  | 'фреймворки'
+  | 'архитектура и данные'
   | 'качество кода';
 
 export interface SkillResource {
@@ -51,6 +51,8 @@ export interface SkillNodeData {
   isRoot?: boolean;
   hasUserBadge?: boolean;
   description: string;
+  whereUsed?: string[];
+  entryLevel?: string;
   prerequisites: string[];
   resources: SkillResource[];
 }

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { RoadmapDirectionInfo } from '../../types/roadmap';
 
 interface RoadmapHeaderProps {
@@ -58,13 +59,13 @@ export const RoadmapHeader: React.FC<RoadmapHeaderProps> = ({
           >
             Персонализация дерева (Gap analysis)
           </button>
-          <button
-            type="button"
+          <Link
+            to="/projects"
             style={{ fontFamily: 'UnifontExMono, monospace' }}
-            className="h-10 px-6 rounded-full bg-[#DDD2FD] text-black text-[13px] font-medium tracking-[0.01em] hover:bg-[#D1C3FC] transition shadow-sm cursor-pointer"
+            className="h-10 px-6 rounded-full bg-[#DDD2FD] text-black text-[13px] font-medium tracking-[0.01em] hover:bg-[#D1C3FC] transition shadow-sm inline-flex items-center"
           >
             База проектов и упражнений
-          </button>
+          </Link>
         </div>
 
         <div className="flex items-center gap-3">

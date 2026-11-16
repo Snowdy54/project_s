@@ -96,6 +96,12 @@ export const RoadmapCanvas: React.FC<RoadmapCanvasProps> = ({
     );
   };
 
+  const levelZones = [
+    { label: '| Начинающий', x: 32 },
+    { label: '| Продвинутый', x: 480 },
+    { label: '| Углубленный', x: 1050 },
+  ];
+
   return (
     <div
       ref={containerRef}
@@ -108,36 +114,27 @@ export const RoadmapCanvas: React.FC<RoadmapCanvasProps> = ({
         isDragging ? 'cursor-grabbing' : 'cursor-grab'
       }`}
     >
-      {/* 1. Уровни тем: зафиксированы сверху (Sticky Y), двигаются по оси X */}
-      <div className="absolute top-4 left-0 w-full pointer-events-none z-20 overflow-hidden h-9">
-        <div
-          className={`h-full flex items-center ${
-            isDragging ? '' : 'transition-transform duration-200 ease-out'
-          }`}
-          style={{
-            transform: `translate3d(${position.x}px, 0, 0) scale(${scale})`,
-            transformOrigin: 'top left',
-            width: '1600px',
-            willChange: 'transform',
-            fontFamily: 'UnifontExMono, monospace',
-          }}
-        >
-          <div className="w-[480px] pl-8">
-            <span className="text-white/90 bg-[#05101A]/90 px-3 py-1 rounded-md text-[14px] font-medium">
-              | Начинающий
+      {/* 1. Надписи уровней сложности: прикреплены сверху, двигаются по X синхронно с зумом без обрезки */}
+      <div
+        style={{ fontFamily: 'UnifontExMono, monospace' }}
+        className="absolute top-4 left-0 w-full h-10 pointer-events-none z-20 overflow-hidden"
+      >
+        {levelZones.map((zone) => (
+          <div
+            key={zone.label}
+            className={`absolute top-0 left-0 whitespace-nowrap ${
+              isDragging ? '' : 'transition-transform duration-200 ease-out'
+            }`}
+            style={{
+              transform: `translate3d(${position.x + zone.x * scale}px, 0, 0)`,
+              willChange: 'transform',
+            }}
+          >
+            <span className="inline-block text-[#FDFCEA]/90 bg-[#05101A]/90 px-3 py-1 rounded-md text-[15px] font-medium">
+              {zone.label}
             </span>
           </div>
-          <div className="w-[570px] pl-8">
-            <span className="text-white/90 bg-[#05101A]/90 px-3 py-1 rounded-md text-[14px] font-medium">
-              | Продвинутый
-            </span>
-          </div>
-          <div className="flex-1 pl-8">
-            <span className="text-white/90 bg-[#05101A]/90 px-3 py-1 rounded-md text-[14px] font-medium">
-              | Углубленный
-            </span>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Подсказка о зуме */}
@@ -175,7 +172,7 @@ export const RoadmapCanvas: React.FC<RoadmapCanvasProps> = ({
         </button>
       </div>
 
-      {/* 2. Холст с узлами и связями */}
+      {/* 2. Холст с узлами и связями (без вертикальных полос) */}
       <div
         className={`w-[1600px] h-[960px] absolute origin-top-left ${
           isDragging ? '' : 'transition-transform duration-200 ease-out'
@@ -185,10 +182,6 @@ export const RoadmapCanvas: React.FC<RoadmapCanvasProps> = ({
           willChange: 'transform',
         }}
       >
-        {/* Разделительные линии колонок */}
-        <div className="absolute top-12 left-[480px] h-[880px] w-px bg-white/5 pointer-events-none" />
-        <div className="absolute top-12 left-[1050px] h-[880px] w-px bg-white/5 pointer-events-none" />
-
         {/* Связи */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
           {edges.map(renderEdge)}
