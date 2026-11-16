@@ -25,7 +25,7 @@ export const RoadmapPage: React.FC = () => {
         if (parsed.length === initialFrontendNodes.length && parsed[0].labelPosition) {
           return parsed;
         }
-      } catch {
+      } catch (e) {
         // fallback
       }
     }
@@ -74,7 +74,7 @@ export const RoadmapPage: React.FC = () => {
   const handleExportPDF = () => {
     try {
       window.print();
-    } catch {
+    } catch (err) {
       alert('Не удалось экспортировать карту. Повторите ещё раз.');
     }
   };
