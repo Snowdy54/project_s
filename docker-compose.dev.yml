@@ -1,0 +1,31 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: project_s-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - VITE_BACKEND_URL=http://backend:8000
+    networks:
+      - app-network
+
+  # backend:
+  #   build:
+  #     context: ./backend
+  #   container_name: project_s-backend-dev
+  #   ports:
+  #     - "8000:8000"
+  #   networks:
+  #     - app-network
+
+networks:
+  app-network:
+    driver: bridge
+    name: project_s-network
