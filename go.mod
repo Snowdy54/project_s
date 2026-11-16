@@ -3,6 +3,9 @@ module github.com/Snowdy54/project_s
 go 1.27.1
 
 require (
+	github.com/go-chi/chi/v5 v5.5.0
+	github.com/jmoiron/sqlx v1.4.0
+	github.com/lib/pq v1.12.3
 	google.golang.org/grpc v1.85.0
 	google.golang.org/protobuf v1.36.12
 )
