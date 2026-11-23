@@ -4,11 +4,12 @@ import { HomePage } from './pages/Home';
 import { RoadmapPage } from './pages/Roadmap';
 import { ProjectsPage } from './pages/Projects';
 import { ProjectDetailPage } from './pages/Projects/ProjectDetail';
+import { ProfilePage } from './pages/Profile';
 
 function App() {
   return (
     <BrowserRouter>
-      <div style={{ backgroundColor: '#05101A' }} className="min-h-screen text-white">
+      <div style={{ backgroundColor: '#05131C' }} className="min-h-screen text-white">
         <Navbar />
 
         <Routes>
@@ -17,6 +18,7 @@ function App() {
           <Route path="/roadmaps" element={<RoadmapPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="*" element={<Navigate to="/roadmap" replace />} />
         </Routes>
       </div>

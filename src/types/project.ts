@@ -1,11 +1,33 @@
 export type ProjectDifficulty = 'beginner' | 'advanced' | 'deep';
 
+export interface ProjectListItem {
+  boldPrefix?: string;
+  italicPrefix?: string;
+  text: string;
+  monoSuffix?: string;
+}
+
+export interface ProjectStepItem {
+  title: string;
+  description?: string;
+  items?: (string | ProjectListItem)[];
+  boldTitle?: boolean;
+}
+
 export type ProjectContentBlock =
-  | { type: 'paragraph'; text: string }
-  | { type: 'heading'; text: string }
-  | { type: 'subheading'; text: string }
-  | { type: 'list'; items: string[] }
-  | { type: 'code'; language: string; code: string };
+  | {
+      type: 'paragraph';
+      text: string;
+      italicPrefix?: string;
+      boldPrefix?: string;
+      boldSegment?: string;
+      textAfterBold?: string;
+    }
+  | { type: 'heading'; text: string; id?: string }
+  | { type: 'subheading'; text: string; bold?: boolean }
+  | { type: 'list'; items: (string | ProjectListItem)[] }
+  | { type: 'steps'; steps: ProjectStepItem[] }
+  | { type: 'code'; language: string; filename?: string; code: string };
 
 export interface ProjectData {
   id: string;

@@ -10,6 +10,12 @@ interface RoadmapCanvasProps {
   onChangeStatus: (nodeId: string, status: NodeStatus) => void;
 }
 
+const levelZones = [
+  { label: '| Начинающий', x: 32 },
+  { label: '| Продвинутый', x: 480 },
+  { label: '| Углубленный', x: 1050 },
+];
+
 export const RoadmapCanvas: React.FC<RoadmapCanvasProps> = ({
   nodes,
   edges,
@@ -95,12 +101,6 @@ export const RoadmapCanvas: React.FC<RoadmapCanvasProps> = ({
       />
     );
   };
-
-  const levelZones = [
-    { label: '| Начинающий', x: 32 },
-    { label: '| Продвинутый', x: 480 },
-    { label: '| Углубленный', x: 1050 },
-  ];
 
   return (
     <div
