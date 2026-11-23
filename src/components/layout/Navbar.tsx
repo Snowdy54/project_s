@@ -1,16 +1,36 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
+// Точная векторная иконка fi-sr-user из макета Figma
+const ProfileUserIcon: React.FC = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    xmlns="http://www.w3.org/2000/svg"
+    className="shrink-0"
+  >
+    <circle cx="12" cy="6" r="6" />
+    <path d="M12,14a9.01,9.01,0,0,0-9,9,1,1,0,0,0,1,1H20a1,1,0,0,0,1-1A9.01,9.01,0,0,0,12,14Z" />
+  </svg>
+);
+
 export const Navbar: React.FC = () => {
-  const location = useLocation();
-  const currentPath = location.pathname;
+  let currentPath = '/';
+  try {
+    const location = useLocation();
+    currentPath = location.pathname;
+  } catch {
+    currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+  }
 
   const isHomeActive = currentPath === '/';
-  const isRoadmapsActive = currentPath === '/roadmaps';
-  const isMyLearningActive =
+  const isMapsActive =
     currentPath === '/roadmap' ||
-    currentPath === '/my-learning' ||
+    currentPath === '/roadmaps' ||
     currentPath.startsWith('/projects');
+  const isProfileActive = currentPath === '/profile';
 
   return (
     <header className="w-full px-6 lg:px-[90px] pt-6 pb-4 flex items-center justify-between select-none">
@@ -21,57 +41,43 @@ export const Navbar: React.FC = () => {
         SkillMap
       </Link>
 
-      {/* Без заднего фона и внешней рамки — как в Figma */}
-      <nav className="flex items-center gap-3 bg-transparent">
+      {/* Две кнопки навигации с обводкой #DDD2FD */}
+      <nav className="flex items-center gap-4 bg-transparent">
         <Link
           to="/"
-          className={`h-11 px-7 rounded-full flex items-center text-[15px] font-medium transition ${
+          className={`h-11 px-7 rounded-full border border-[#DDD2FD] flex items-center text-[15px] transition ${
             isHomeActive
-              ? 'bg-[#DDD2FD] text-[#05101A] font-bold shadow-sm'
-              : 'text-[#FDFCEA] hover:text-white/80'
+              ? 'bg-[#DDD2FD] text-[#05131C] font-bold shadow-sm'
+              : 'bg-transparent text-[#FFFFFF] font-medium hover:bg-[#DDD2FD]/15'
           }`}
         >
           Главная
         </Link>
 
         <Link
-          to="/roadmaps"
-          className={`h-11 px-7 rounded-full flex items-center text-[15px] font-medium transition ${
-            isRoadmapsActive
-              ? 'bg-[#DDD2FD] text-[#05101A] font-bold shadow-sm'
-              : 'text-[#FDFCEA] hover:text-white/80'
-          }`}
-        >
-          Roadmaps
-        </Link>
-
-        <Link
           to="/roadmap"
-          className={`h-11 px-7 rounded-full flex items-center text-[15px] font-medium transition ${
-            isMyLearningActive
-              ? 'bg-[#DDD2FD] text-[#05101A] font-bold shadow-sm'
-              : 'text-[#FDFCEA] hover:text-white/80'
+          className={`h-11 px-7 rounded-full border border-[#DDD2FD] flex items-center text-[15px] transition ${
+            isMapsActive
+              ? 'bg-[#DDD2FD] text-[#05131C] font-bold shadow-sm'
+              : 'bg-transparent text-[#FFFFFF] font-medium hover:bg-[#DDD2FD]/15'
           }`}
         >
-          Мое обучение
+          Интерактивные карты
         </Link>
       </nav>
 
-      <div className="w-11 h-11 rounded-full border border-[#DDD2FD]/40 bg-transparent flex items-center justify-center text-[#FDFCEA] hover:border-[#DDD2FD] transition cursor-pointer">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
-        </svg>
-      </div>
+      {/* Иконка Личного кабинета: толстое кольцо #DDD2FD + силуэт #FDFCEA */}
+      <Link
+        to="/profile"
+        title="Личный кабинет"
+        className={`w-11 h-11 rounded-full border-[5px] border-[#DDD2FD] flex items-center justify-center text-[#FDFCEA] transition ${
+          isProfileActive
+            ? 'bg-[#DDD2FD]/25 shadow-[0_0_16px_rgba(221,210,253,0.45)]'
+            : 'bg-transparent hover:bg-[#DDD2FD]/15'
+        }`}
+      >
+        <ProfileUserIcon />
+      </Link>
     </header>
   );
 };
