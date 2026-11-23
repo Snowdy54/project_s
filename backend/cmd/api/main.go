@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 
@@ -26,33 +27,52 @@ func main() {
 		log.Fatalf("База данных недоступна: %v", err)
 	}
 
-	// 2. Инициализируем роутер chi
+	go app.StartHHScheduler(context.Background(), db)
+
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{
-		// Разрешаем запросы с любых локальных портов (где обычно крутится фронт)
 		AllowedOrigins:   []string{"http://localhost:*", "http://127.0.0.1:*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
-		MaxAge:           300, // Кэшируем настройки CORS на 5 минут
+		MaxAge:           300,
 	}))
 
-	// 3. Подключаем наши эндпоинты, передавая им готовое подключение к БД
-	r.Get("/api/graph", app.HandleGetGraph(db))
-	r.Get("/api/graph/{userID}", app.HandleGetGraph(db))
-	// 3. Подключаем наши эндпоинты
-	r.Get("/api/graph", app.HandleGetGraph(db))
-	r.Get("/api/graph/{userID}", app.HandleGetGraph(db))
+	// 1. Авторизация (публичные)
+	r.Post("/api/auth/register", app.HandleRegister(db))
+	r.Post("/api/auth/login", app.HandleLogin(db))
 
-	// НОВЫЙ ЭНДПОИНТ:
-	r.Post("/api/onboarding", app.HandleOnboarding(db))
-	r.Get("/api/graph", app.HandleGetGraph(db))
-	r.Get("/api/graph/{userID}", app.HandleGetGraph(db))
-	r.Post("/api/onboarding", app.HandleOnboarding(db))
+	// 2. Публичные с опциональной авторизацией (гость видит карту, юзер — свой прогресс и закладки)
+	r.Group(func(r chi.Router) {
+		r.Use(app.OptionalAuthMiddleware)
+		r.Get("/api/roadmaps", app.HandleGetRoadmaps(db))
+		r.Get("/api/roadmaps/tags", app.HandleGetRoadmapTags(db))
+		r.Get("/api/roadmaps/{roadmapID}", app.HandleGetRoadmapByID(db))
+	})
 
-	// Наш новый эндпоинт для обновления статуса
-	r.Put("/api/skills/{skillID}/status", app.HandleUpdateSkillStatus(db))
+	// 3. Строго для авторизованных пользователей
+	r.Group(func(r chi.Router) {
+		r.Use(app.RequireAuthMiddleware)
+		r.Post("/api/roadmaps/{roadmapID}/favorite", app.HandleAddFavorite(db))
+		r.Delete("/api/roadmaps/{roadmapID}/favorite", app.HandleRemoveFavorite(db))
+		r.Put("/api/skills/{skillID}/status", app.HandleUpdateSkillStatus(db))
+		r.Post("/api/onboarding", app.HandleOnboarding(db))
+
+		r.Get("/api/profile", app.HandleGetProfile(db))
+		r.Put("/api/profile", app.HandleUpdateProfile(db))
+		r.Delete("/api/profile", app.HandleDeleteProfile(db))
+
+		// Gap Analysis
+		r.Get("/api/roadmaps/{roadmapID}/gap-survey", app.HandleGetGapSurvey(db))
+		r.Post("/api/roadmaps/{roadmapID}/gap-survey/preview", app.HandlePreviewGapSurvey(db))
+		r.Post("/api/roadmaps/{roadmapID}/gap-survey/apply", app.HandleApplyGapSurvey(db))
+
+		r.Post("/api/roadmaps/{roadmapID}/hh-sync", app.HandleSyncHHSkills(db))
+		// Система достижений
+		r.Get("/api/profile/achievements", app.HandleGetUserAchievements(db))
+		r.Post("/api/roadmaps/{roadmapID}/practice-visit", app.HandleVisitPracticeBase(db))
+	})
 
 	// 4. Запускаем сервер на порту 8080
 	log.Println("Сервер запущен на http://localhost:8080")

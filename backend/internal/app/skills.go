@@ -1,7 +1,9 @@
 package app
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -167,42 +169,67 @@ type UpdateStatusRequest struct {
 // HandleUpdateSkillStatus обновляет статус конкретного навыка
 func HandleUpdateSkillStatus(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// 1. Получаем ID навыка из URL (например, /api/skills/5/status)
+		// 1. Получаем ID навыка из URL (BIGINT -> int64)
 		skillIDStr := chi.URLParam(r, "skillID")
-		skillID, err := strconv.Atoi(skillIDStr)
+		skillID, err := strconv.ParseInt(skillIDStr, 10, 64)
 		if err != nil {
-			http.Error(w, `{"error": "Неверный ID навыка"}`, http.StatusBadRequest)
+			writeJSONError(w, "Неверный ID навыка", http.StatusBadRequest)
 			return
 		}
 
 		// 2. Читаем тело запроса
 		var req UpdateStatusRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, `{"error": "Ошибка чтения JSON"}`, http.StatusBadRequest)
+			writeJSONError(w, "Ошибка чтения JSON", http.StatusBadRequest)
 			return
 		}
 
-		// (Опционально) Здесь можно добавить валидацию req.Status, например через switch
+		// 3. Валидируем 4 статуса из ЧТЗ: Не начато, В изучении, Изучено, Пропущено
+		switch req.Status {
+		case "not_started", "in_progress", "completed", "skipped":
+		default:
+			writeJSONError(w, "Недопустимый статус навыка", http.StatusBadRequest)
+			return
+		}
 
-		// 3. Выполняем UPSERT в базе данных
+		// 4. Находим карту, к которой относится навык (заодно проверяем, что навык существует)
+		var roadmapID int64
+		err = db.Get(&roadmapID, `SELECT roadmap_id FROM skills WHERE id = $1`, skillID)
+		if errors.Is(err, sql.ErrNoRows) {
+			writeJSONError(w, "Навык не найден", http.StatusNotFound)
+			return
+		}
+		if err != nil {
+			log.Printf("ОШИБКА SQL (поиск roadmap_id навыка): %v\n", err)
+			writeJSONError(w, "Ошибка при сохранении прогресса", http.StatusInternalServerError)
+			return
+		}
+
+		// 5. Берём userID из JWT-контекста
+		userID := getCurrentUserID(r)
+
+		// 6. Выполняем UPSERT с обновлением времени
 		query := `
-			INSERT INTO users_skill_progress (user_id, skill_id, status) 
-			VALUES ($1, $2, $3)
+			INSERT INTO users_skill_progress (user_id, skill_id, status, updated_at) 
+			VALUES ($1, $2, $3, NOW())
 			ON CONFLICT (user_id, skill_id) 
-			DO UPDATE SET status = EXCLUDED.status
+			DO UPDATE SET status = EXCLUDED.status, updated_at = NOW()
 		`
-		_, err = db.Exec(query, 1, skillID, req.Status) // Хардкодим user_id = 1
+		_, err = db.Exec(query, userID, skillID, req.Status)
 		if err != nil {
 			log.Printf("ОШИБКА SQL (UPSERT status): %v\n", err)
-			http.Error(w, `{"error": "Ошибка при сохранении прогресса"}`, http.StatusInternalServerError)
+			writeJSONError(w, "Ошибка при сохранении прогресса", http.StatusInternalServerError)
 			return
 		}
 
-		// 4. Отправляем успешный ответ
+		// 7. Проверяем и начисляем достижения по прогрессу этой карты
+		unlocked := CheckProgressAchievements(db, userID, roadmapID, req.Status != "not_started")
+
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "success",
-			"message": "Статус успешно обновлен",
+		json.NewEncoder(w).Encode(map[string]any{
+			"status":                      "success",
+			"message":                     "Статус успешно обновлен",
+			"newly_unlocked_achievements": unlocked,
 		})
 	}
 }
