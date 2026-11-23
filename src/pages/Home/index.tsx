@@ -1,87 +1,90 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-export const HomePage: React.FC = () => {
-  // Функция плавного скролла страницы наверх
-  const scrollToTop = () => {
+// Функция плавного скролла страницы наверх
+const scrollToTop = () => {
+  if (typeof window !== 'undefined') {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }
+};
 
-  // Данные для 4 карточек-папок преимуществ (оранжевая + синяя вверху, фиолетовая + жёлтая внизу)
-  const folderCards = [
-    {
-      id: 1,
-      title: 'Синхронизируй\nопыт',
-      desc: 'Подключи GitHub, загрузи резюме или просто отметь пройденные курсы и учебные проекты',
-      bg: 'bg-[#FF7116]',
-      tabColor: '#D95B09',
-      text: 'text-white',
-      descText: 'text-white/95',
-      waveStroke: 'rgba(255, 255, 255, 0.22)',
-      marginTop: 'lg:mt-0',
-    },
-    {
-      id: 2,
-      title: 'Визуализируй\nкарту',
-      desc: 'ИИ превратит твои hard и soft skills в интерактивное «дерево» или «созвездие» компетенций',
-      bg: 'bg-[#DDD2FD]',
-      tabColor: '#BFAFF8',
-      text: 'text-black',
-      descText: 'text-black/85',
-      waveStroke: 'rgba(120, 80, 220, 0.18)',
-      marginTop: 'lg:mt-10',
-    },
-    {
-      id: 3,
-      title: 'Диагностируй\nпробелы',
-      desc: 'Система подсветит навыки, которые требуются для целевой должности, но ещё не прокачаны',
-      bg: 'bg-[#99C3FD]',
-      tabColor: '#76A8F5',
-      text: 'text-black',
-      descText: 'text-black/85',
-      waveStroke: 'rgba(40, 90, 200, 0.18)',
-      marginTop: 'lg:mt-0',
-    },
-    {
-      id: 4,
-      title: 'Персонализируй\nплан',
-      desc: 'Получи подборку: какие курсы пройти, в какой проект вступить или какую стажировку выбрать',
-      bg: 'bg-[#FFF886]',
-      tabColor: '#E5DE62',
-      text: 'text-black',
-      descText: 'text-black/85',
-      waveStroke: 'rgba(180, 160, 20, 0.22)',
-      marginTop: 'lg:mt-10',
-    },
-  ];
+// Данные для 4 карточек-папок преимуществ (оранжевая + синяя вверху, фиолетовая + жёлтая внизу)
+const folderCards = [
+  {
+    id: 1,
+    title: 'Синхронизируй\nопыт',
+    desc: 'Подключи GitHub, загрузи резюме или просто отметь пройденные курсы и учебные проекты',
+    bg: 'bg-[#FF7116]',
+    tabColor: '#D95B09',
+    text: 'text-white',
+    descText: 'text-white/95',
+    waveStroke: 'rgba(255, 255, 255, 0.22)',
+    marginTop: 'lg:mt-0',
+  },
+  {
+    id: 2,
+    title: 'Визуализируй\nкарту',
+    desc: 'ИИ превратит твои hard и soft skills в интерактивное «дерево» или «созвездие» компетенций',
+    bg: 'bg-[#DDD2FD]',
+    tabColor: '#BFAFF8',
+    text: 'text-black',
+    descText: 'text-black/85',
+    waveStroke: 'rgba(120, 80, 220, 0.18)',
+    marginTop: 'lg:mt-10',
+  },
+  {
+    id: 3,
+    title: 'Диагностируй\nпробелы',
+    desc: 'Система подсветит навыки, которые требуются для целевой должности, но ещё не прокачаны',
+    bg: 'bg-[#99C3FD]',
+    tabColor: '#76A8F5',
+    text: 'text-black',
+    descText: 'text-black/85',
+    waveStroke: 'rgba(40, 90, 200, 0.18)',
+    marginTop: 'lg:mt-0',
+  },
+  {
+    id: 4,
+    title: 'Персонализируй\nплан',
+    desc: 'Получи подборку: какие курсы пройти, в какой проект вступить или какую стажировку выбрать',
+    bg: 'bg-[#FFF886]',
+    tabColor: '#E5DE62',
+    text: 'text-black',
+    descText: 'text-black/85',
+    waveStroke: 'rgba(180, 160, 20, 0.22)',
+    marginTop: 'lg:mt-10',
+  },
+];
 
-  // Данные для 4 карточек специальностей
-  const specialtyCards = [
-    {
-      id: 1,
-      title: 'Data Scientist',
-      desc: 'Извлекай знания из данных\nи строй ML-модели',
-      icon: '/icons/data-scientist.png',
-    },
-    {
-      id: 2,
-      title: 'Frontend-разработчик',
-      desc: 'Воплощай дизайн в код: быстро,\nкрасиво, функционально',
-      icon: '/icons/frontend.png',
-    },
-    {
-      id: 3,
-      title: 'UX/UI-дизайнер',
-      desc: 'Создавай цифровые продукты,\nкоторыми приятно пользоваться',
-      icon: '/icons/ui-ux.png',
-    },
-    {
-      id: 4,
-      title: 'Product Manager',
-      desc: 'Соединяй бизнес, пользователей\nи команду разработки',
-      icon: '/icons/product-manager.png',
-    },
-  ];
+// Данные для 4 карточек специальностей
+const specialtyCards = [
+  {
+    id: 1,
+    title: 'Data Scientist',
+    desc: 'Извлекай знания из данных\nи строй ML-модели',
+    icon: '/icons/data-scientist.png',
+  },
+  {
+    id: 2,
+    title: 'Frontend-разработчик',
+    desc: 'Воплощай дизайн в код: быстро,\nкрасиво, функционально',
+    icon: '/icons/frontend.png',
+  },
+  {
+    id: 3,
+    title: 'UX/UI-дизайнер',
+    desc: 'Создавай цифровые продукты,\nкоторыми приятно пользоваться',
+    icon: '/icons/ui-ux.png',
+  },
+  {
+    id: 4,
+    title: 'Product Manager',
+    desc: 'Соединяй бизнес, пользователей\nи команду разработки',
+    icon: '/icons/product-manager.png',
+  },
+];
+
+export const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#071018] text-white selection:bg-[#FFF886] selection:text-black">

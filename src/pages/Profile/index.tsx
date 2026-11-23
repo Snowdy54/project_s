@@ -26,13 +26,15 @@ import {
 } from '../../components/profile/ProfileIcons';
 import { AvatarCropModal } from '../../components/profile/AvatarCropModal';
 import { Footer } from '../../components/layout/Footer';
+import {
+  STORAGE_KEYS,
+  getStorageItem,
+  setStorageItem,
+  removeStorageItem,
+} from '../../utils/storage';
 
 type ProfileTab = 'profile' | 'activity' | 'achievements';
 type AuthMode = 'login' | 'register' | 'forgot';
-
-const STORAGE_PROFILE_KEY = 'skillmap_user_profile_v2';
-const STORAGE_AUTH_KEY = 'skillmap_user_auth_v1';
-const STORAGE_FAVORITES_KEY = 'skillmap_user_favorites_v1';
 
 const isValidEmail = (value: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -42,10 +44,9 @@ const isValidPhone = (value: string) =>
 
 export const ProfilePage: React.FC = () => {
   // Авторизация пользователя
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(() => {
-    const saved = localStorage.getItem(STORAGE_AUTH_KEY);
-    return saved !== null ? JSON.parse(saved) : true;
-  });
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(() =>
+    getStorageItem(STORAGE_KEYS.AUTH, true)
+  );
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [authName, setAuthName] = useState('');
   const [authContact, setAuthContact] = useState('');
@@ -55,18 +56,26 @@ export const ProfilePage: React.FC = () => {
     text: string;
   } | null>(null);
 
+  // Синхронизация статуса авторизации при переключении между вкладками
+  useEffect(() => {
+    const handleSync = () => {
+      setIsAuthorized(getStorageItem(STORAGE_KEYS.AUTH, true));
+    };
+    window.addEventListener('skillmap-storage-sync', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('skillmap-storage-sync', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
+
   // Активная вкладка ЛК
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
 
   // Сохранённый и редактируемый профиль (по умолчанию avatarUrl = '' — пустая жёлтая аватарка)
-  const [savedProfile, setSavedProfile] = useState<UserProfileData>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_PROFILE_KEY);
-      return raw ? JSON.parse(raw) : defaultUserProfile;
-    } catch {
-      return defaultUserProfile;
-    }
-  });
+  const [savedProfile, setSavedProfile] = useState<UserProfileData>(() =>
+    getStorageItem(STORAGE_KEYS.PROFILE, defaultUserProfile)
+  );
   const [formProfile, setFormProfile] = useState<UserProfileData>(savedProfile);
 
   // Выбор и обрезка аватарки из галереи
@@ -96,14 +105,9 @@ export const ProfilePage: React.FC = () => {
 
   // Активность: начатые и избранные карты
   const [startedMaps] = useState<UserRoadmapProgress[]>(initialStartedMaps);
-  const [favoriteMaps, setFavoriteMaps] = useState<UserRoadmapProgress[]>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_FAVORITES_KEY);
-      return raw ? JSON.parse(raw) : initialFavoriteMaps;
-    } catch {
-      return initialFavoriteMaps;
-    }
-  });
+  const [favoriteMaps, setFavoriteMaps] = useState<UserRoadmapProgress[]>(() =>
+    getStorageItem(STORAGE_KEYS.FAVORITES, initialFavoriteMaps)
+  );
   const [mapToRemoveId, setMapToRemoveId] = useState<string | null>(null);
 
   // Достижения
@@ -157,7 +161,7 @@ export const ProfilePage: React.FC = () => {
     const updatedForm = { ...formProfile, avatarUrl: croppedDataUrl };
     setSavedProfile(updatedSaved);
     setFormProfile(updatedForm);
-    localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(updatedSaved));
+    setStorageItem(STORAGE_KEYS.PROFILE, updatedSaved);
     setRawImageToCrop(null);
   };
 
@@ -167,7 +171,7 @@ export const ProfilePage: React.FC = () => {
     const updatedForm = { ...formProfile, avatarUrl: '' };
     setSavedProfile(updatedSaved);
     setFormProfile(updatedForm);
-    localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(updatedSaved));
+    setStorageItem(STORAGE_KEYS.PROFILE, updatedSaved);
   };
 
   const handleSaveProfile = (e: React.FormEvent) => {
@@ -201,7 +205,7 @@ export const ProfilePage: React.FC = () => {
 
     setSavedProfile(normalizedProfile);
     setFormProfile(normalizedProfile);
-    localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(normalizedProfile));
+    setStorageItem(STORAGE_KEYS.PROFILE, normalizedProfile);
 
     setIsSavedSuccess(true);
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -212,7 +216,7 @@ export const ProfilePage: React.FC = () => {
 
   const handleLogout = () => {
     setIsAuthorized(false);
-    localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(false));
+    setStorageItem(STORAGE_KEYS.AUTH, false);
     setAuthMode('login');
     setAuthMessage(null);
   };
@@ -223,9 +227,9 @@ export const ProfilePage: React.FC = () => {
       setDeleteError('Неверный ввод. Удаление аккаунта прервано.');
       return;
     }
-    localStorage.removeItem(STORAGE_PROFILE_KEY);
-    localStorage.removeItem(STORAGE_FAVORITES_KEY);
-    localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(false));
+    removeStorageItem(STORAGE_KEYS.PROFILE);
+    removeStorageItem(STORAGE_KEYS.FAVORITES);
+    setStorageItem(STORAGE_KEYS.AUTH, false);
     setSavedProfile(defaultUserProfile);
     setFormProfile(defaultUserProfile);
     setIsDeleteModalOpen(false);
@@ -237,7 +241,7 @@ export const ProfilePage: React.FC = () => {
   const handleRemoveFavorite = (id: string) => {
     const updated = favoriteMaps.filter((m) => m.id !== id);
     setFavoriteMaps(updated);
-    localStorage.setItem(STORAGE_FAVORITES_KEY, JSON.stringify(updated));
+    setStorageItem(STORAGE_KEYS.FAVORITES, updated);
     setMapToRemoveId(null);
   };
 
@@ -293,11 +297,11 @@ export const ProfilePage: React.FC = () => {
       };
       setSavedProfile(nextProfile);
       setFormProfile(nextProfile);
-      localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(nextProfile));
+      setStorageItem(STORAGE_KEYS.PROFILE, nextProfile);
     }
 
     setIsAuthorized(true);
-    localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(true));
+    setStorageItem(STORAGE_KEYS.AUTH, true);
   };
 
   if (!isAuthorized) {
@@ -414,7 +418,7 @@ export const ProfilePage: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setIsAuthorized(true);
-                  localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(true));
+                  setStorageItem(STORAGE_KEYS.AUTH, true);
                 }}
                 className="w-full h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] text-[#FDFCEA] text-[14px] flex items-center justify-center gap-2.5 hover:shadow-[0_0_5px_#FDFCEA] transition cursor-pointer"
               >

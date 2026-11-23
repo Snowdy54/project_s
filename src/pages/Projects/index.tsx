@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { backendProjectsData } from '../../data/projectsData';
 import type { ProjectDifficulty } from '../../types/project';
@@ -43,36 +43,36 @@ const PixelCloseIcon: React.FC<{ className?: string }> = ({
   </svg>
 );
 
+const filterOptions: {
+  id: ProjectDifficulty;
+  label: string;
+  activeBg: string;
+  activeText: string;
+}[] = [
+  {
+    id: 'beginner',
+    label: 'Начинающий',
+    activeBg: '#FFF886',
+    activeText: '#05101A',
+  },
+  {
+    id: 'advanced',
+    label: 'Продвинутый',
+    activeBg: '#99C3FD',
+    activeText: '#05101A',
+  },
+  {
+    id: 'deep',
+    label: 'Углубленный',
+    activeBg: '#FF7116',
+    activeText: '#FDFCEA',
+  },
+];
+
 export const ProjectsPage: React.FC = () => {
   const [selectedDifficulty, setSelectedDifficulty] =
     useState<ProjectDifficulty | null>(null);
   const [hasLoadError, setHasLoadError] = useState(false);
-
-  const filterOptions: {
-    id: ProjectDifficulty;
-    label: string;
-    activeBg: string;
-    activeText: string;
-  }[] = [
-    {
-      id: 'beginner',
-      label: 'Начинающий',
-      activeBg: '#FFF886',
-      activeText: '#05101A',
-    },
-    {
-      id: 'advanced',
-      label: 'Продвинутый',
-      activeBg: '#99C3FD',
-      activeText: '#05101A',
-    },
-    {
-      id: 'deep',
-      label: 'Углубленный',
-      activeBg: '#FF7116',
-      activeText: '#FDFCEA',
-    },
-  ];
 
   const handleToggleDifficulty = (diff: ProjectDifficulty) => {
     setSelectedDifficulty((prev) => (prev === diff ? null : diff));
@@ -82,9 +82,11 @@ export const ProjectsPage: React.FC = () => {
     setSelectedDifficulty(null);
   };
 
-  const filteredProjects = selectedDifficulty
-    ? backendProjectsData.filter((p) => p.difficulty === selectedDifficulty)
-    : backendProjectsData;
+  const filteredProjects = useMemo(() => {
+    return selectedDifficulty
+      ? backendProjectsData.filter((p) => p.difficulty === selectedDifficulty)
+      : backendProjectsData;
+  }, [selectedDifficulty]);
 
   return (
     <div className="min-h-[calc(100vh-88px)] bg-[#05101A] text-white flex flex-col justify-between">
