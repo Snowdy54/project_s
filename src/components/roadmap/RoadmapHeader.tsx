@@ -11,6 +11,22 @@ interface RoadmapHeaderProps {
   onExportPDF?: () => void;
 }
 
+const PixelArrow: React.FC<{ isOpen: boolean }> = ({ isOpen }) => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={`transition-transform duration-150 shrink-0 ${isOpen ? 'rotate-180' : ''}`}
+  >
+    <path
+      d="M13 16H11V14H13V16ZM11 14H9V12H11V14ZM15 14H13V12H15V14ZM9 12H7V10H9V12ZM17 12H15V10H17V12ZM7 10H5V8H7V10ZM19 10H17V8H19V10Z"
+      fill="#FDFCEA"
+    />
+  </svg>
+);
+
 export const RoadmapHeader: React.FC<RoadmapHeaderProps> = ({
   directionInfo,
   progressPercent = 48,
@@ -30,22 +46,6 @@ export const RoadmapHeader: React.FC<RoadmapHeaderProps> = ({
   };
 
   const title = directionInfo?.title || 'Frontend-разработчик';
-
-  const PixelArrow = ({ isOpen }: { isOpen: boolean }) => (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={`transition-transform duration-150 shrink-0 ${isOpen ? 'rotate-180' : ''}`}
-    >
-      <path
-        d="M13 16H11V14H13V16ZM11 14H9V12H11V14ZM15 14H13V12H15V14ZM9 12H7V10H9V12ZM17 12H15V10H17V12ZM7 10H5V8H7V10ZM19 10H17V8H19V10Z"
-        fill="#FDFCEA"
-      />
-    </svg>
-  );
 
   return (
     <div className="w-full space-y-4 select-none">

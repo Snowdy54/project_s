@@ -1,75 +1,69 @@
-# React + TypeScript + Vite
+# SkillMap 🗺️
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**SkillMap** — интерактивная карта навыков и компетенций для студентов и начинающих специалистов. Проект помогает превратить разрозненные образовательные материалы в структурированный и понятный маршрут профессионального развития.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 💡 О проекте
 
-## React Compiler
+При выборе карьерного пути студенты часто сталкиваются с переизбытком информации и отсутствием четкого понимания, с чего начать. 
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+SkillMap решает эту проблему:
+* Визуализирует требования к IT-профессиям в виде **графа знаний (Knowledge Graph)** с логическими связями между темами.
+* Проводит **Gap Analysis** (анализ пробелов), сопоставляя текущие знания студента с целевыми требованиями.
+* Формирует **персональную траекторию обучения** на 2–3 месяца с ссылками на проверенные бесплатные курсы, книги и практические проекты.
+* Предоставляет **дашборд личного прогресса** для отслеживания динамики освоения компетенций.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🛠️ Технологический стек
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+* **Frontend:** React, TypeScript, Vite, React Flow / D3.js, Tailwind CSS
+* **Backend:** Go (Chi / Fiber)
+* **База данных:** PostgreSQL
+* **Интеграции и AI:** Google Gemini API / Groq, Stepik API, GitHub REST API и тд
+* **Инфраструктура:** Docker, Docker Compose
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 🚀 Быстрый запуск
 
+### 1. Клонирование репозитория
+```bash
+git clone https://github.com/<ваш-аккаунт>/SkillMap.git
+cd SkillMap
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+### 2. Настройка переменных окружения
+Скопируйте шаблон конфигурации и заполните необходимые ключи:
+```bash
+cp .env.example .env
 ```
+
+### 3. Запуск через Docker Compose
+```bash
+docker compose up -d --build
+```
+
+После успешного запуска сервисы доступны по адресам:
+* **Веб-интерфейс:** [http://localhost:5173](http://localhost:5173)
+* **API бэкенда:** [http://localhost:8080](http://localhost:8080)
+
+---
+
+## 📁 Структура репозитория
+
+```text
+.
+├── backend/            # Исходный код API-сервиса на Go
+├── frontend/           # Клиентская часть на React + TypeScript
+├── docker-compose.yml  # Оркестрация контейнеров (Backend, Frontend, PostgreSQL)
+├── QUICKGUIDE.md       # Шпаргалка по командам и регламенту разработки
+└── README.md           # Общее описание проекта
+```
+
+---
+
+## 📚 Документация для команды
+
+Подробные инструкции по работе с Docker, командам Go и React, регламенту создания веток и чек-листу готовности задач находятся в файле [QUICKGUIDE.md](./QUICKGUIDE.md).

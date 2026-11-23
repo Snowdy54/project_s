@@ -2,13 +2,8 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 export const Navbar: React.FC = () => {
-  let currentPath = '/';
-  try {
-    const location = useLocation();
-    currentPath = location.pathname;
-  } catch {
-    currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
-  }
+  const location = useLocation();
+  const currentPath = location.pathname;
 
   const isHomeActive = currentPath === '/';
   const isRoadmapsActive = currentPath === '/roadmaps';
