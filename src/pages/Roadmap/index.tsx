@@ -12,22 +12,32 @@ import { AuthWarningModal } from '../../components/roadmap/AuthWarningModal';
 import { RoadmapFooterRecommendations } from '../../components/roadmap/RoadmapFooterRecommendations';
 import { Footer } from '../../components/layout/Footer';
 
+import { STORAGE_KEYS, getStorageItem, setStorageItem } from '../../utils/storage';
+
 export const RoadmapPage: React.FC = () => {
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(true);
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(() =>
+    getStorageItem(STORAGE_KEYS.AUTH, true)
+  );
   const [showAuthWarning, setShowAuthWarning] = useState<boolean>(false);
+
+  // Синхронизация статуса авторизации при переключении между вкладками
+  useEffect(() => {
+    const handleSync = () => {
+      setIsAuthorized(getStorageItem(STORAGE_KEYS.AUTH, true));
+    };
+    window.addEventListener('skillmap-storage-sync', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('skillmap-storage-sync', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
 
   // Используем ключ v3 для мгновенной загрузки исправленных координат
   const [nodes, setNodes] = useState<SkillNodeData[]>(() => {
-    const saved = localStorage.getItem('skillmap_frontend_nodes_v3');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.length === initialFrontendNodes.length && parsed[0].labelPosition) {
-          return parsed;
-        }
-      } catch {
-        // fallback
-      }
+    const saved = getStorageItem<SkillNodeData[] | null>(STORAGE_KEYS.ROADMAP_NODES, null);
+    if (saved && saved.length === initialFrontendNodes.length && saved[0].labelPosition) {
+      return saved;
     }
     return initialFrontendNodes;
   });
@@ -35,7 +45,7 @@ export const RoadmapPage: React.FC = () => {
   const [selectedNode, setSelectedNode] = useState<SkillNodeData | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('skillmap_frontend_nodes_v3', JSON.stringify(nodes));
+    setStorageItem(STORAGE_KEYS.ROADMAP_NODES, nodes);
   }, [nodes]);
 
   const completedCount = nodes.filter(
@@ -88,7 +98,11 @@ export const RoadmapPage: React.FC = () => {
           progressPercent={progressPercent}
           currentLevel={currentLevel}
           isAuthorized={isAuthorized}
-          onToggleAuth={() => setIsAuthorized((prev) => !prev)}
+          onToggleAuth={() => {
+            const next = !isAuthorized;
+            setIsAuthorized(next);
+            setStorageItem(STORAGE_KEYS.AUTH, next);
+          }}
           onExportPDF={handleExportPDF}
         />
 
@@ -126,6 +140,7 @@ export const RoadmapPage: React.FC = () => {
         onLogin={() => {
           setShowAuthWarning(false);
           setIsAuthorized(true);
+          setStorageItem(STORAGE_KEYS.AUTH, true);
         }}
       />
     </div>

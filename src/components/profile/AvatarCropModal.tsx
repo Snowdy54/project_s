@@ -146,7 +146,7 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 select-none"
+      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 select-none"
       onClick={onCancel}
     >
       <div

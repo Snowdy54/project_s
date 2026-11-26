@@ -20,13 +20,8 @@ const ProfileUserIcon: React.FC = () => (
 );
 
 export const Navbar: React.FC = () => {
-  let currentPath = '/';
-  try {
-    const location = useLocation();
-    currentPath = location.pathname;
-  } catch {
-    currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
-  }
+  const location = useLocation();
+  const currentPath = location.pathname;
 
   const [isAuthorized, setIsAuthorized] = useState<boolean>(() => {
     try {
