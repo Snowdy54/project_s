@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import type {
   UserProfileData,
   UserRoadmapProgress,
@@ -12,6 +12,8 @@ import {
   achievementsCatalog,
 } from '../../data/achievementsData';
 import {
+  PixelTrashIcon,
+  PixelCardChevronRightIcon,
   PixelEmptyAvatarUserIcon,
   PixelVerifiedCheckIcon,
   PixelSidebarProfileIcon,
@@ -26,13 +28,14 @@ import {
 } from '../../components/profile/ProfileIcons';
 import { AvatarCropModal } from '../../components/profile/AvatarCropModal';
 import { Footer } from '../../components/layout/Footer';
+import { AchievementCircleBadge } from '../../components/profile/AchievementIcons';
 
 type ProfileTab = 'profile' | 'activity' | 'achievements';
 type AuthMode = 'login' | 'register' | 'forgot';
 
 const STORAGE_PROFILE_KEY = 'skillmap_user_profile_v2';
 const STORAGE_AUTH_KEY = 'skillmap_user_auth_v1';
-const STORAGE_FAVORITES_KEY = 'skillmap_user_favorites_v1';
+const STORAGE_FAVORITES_KEY = 'skillmap_user_favorites_v2';
 
 const isValidEmail = (value: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -40,7 +43,100 @@ const isValidEmail = (value: string) =>
 const isValidPhone = (value: string) =>
   value.replace(/\D/g, '').length >= 10;
 
+interface ActivityRoadmapCardProps {
+  map: UserRoadmapProgress;
+  variant: 'favorite' | 'started';
+  onOpen: (path: string) => void;
+  onRequestRemove?: (id: string) => void;
+}
+
+const ActivityRoadmapCard: React.FC<ActivityRoadmapCardProps> = ({
+  map,
+  variant,
+  onOpen,
+  onRequestRemove,
+}) => {
+  const isCompleted = map.progress >= 100;
+  const accentColor = isCompleted ? '#FF7116' : '#99C3FD';
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(map.path)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen(map.path);
+        }
+      }}
+      style={{
+        borderColor: accentColor,
+      }}
+      className={`w-full min-h-[98px] rounded-[20px] border bg-[#FDFCEA0D] px-6 sm:px-[40px] py-[20px] flex items-center justify-between gap-6 sm:gap-[57px] cursor-pointer transition-all duration-200 ${
+        isCompleted
+          ? 'hover:shadow-[0_0_12px_rgba(255,113,22,0.45)]'
+          : 'hover:shadow-[0_0_12px_rgba(153,195,253,0.45)]'
+      }`}
+    >
+      {/* Левая часть: название + процент + шкала прогресса */}
+      <div className="flex-1 min-w-0 space-y-3">
+        <div className="flex items-center justify-between gap-4">
+          <span
+            style={{ fontFamily: 'Product Sans, sans-serif' }}
+            className="text-[19px] sm:text-[22px] font-medium text-[#FDFCEA] leading-tight truncate"
+          >
+            {map.title}
+          </span>
+          <span
+            style={{ fontFamily: 'UnifontExMono, monospace' }}
+            className="text-[16px] sm:text-[18px] text-[#FDFCEA] shrink-0"
+          >
+            {map.progress}%
+          </span>
+        </div>
+
+        {/* Шкала прогресса (подложка #FDFCEA, заполнение #99C3FD или #FF7116) */}
+        <div className="w-full h-[14px] rounded-full bg-[#FDFCEA] border border-[#FDFCEA] overflow-hidden">
+          <div
+            style={{
+              width: `${Math.min(100, Math.max(0, map.progress))}%`,
+              backgroundColor: accentColor,
+            }}
+            className="h-full rounded-full transition-all duration-300"
+          />
+        </div>
+      </div>
+
+      {/* Правая круглая кнопка 36x36: корзина для избранных или '>' для начатых */}
+      {variant === 'favorite' ? (
+        <button
+          type="button"
+          title="Удалить из избранного"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRequestRemove?.(map.id);
+          }}
+          style={{ backgroundColor: accentColor }}
+          className="w-[36px] h-[36px] rounded-full border-2 border-[#FDFCEA] text-[#05131C] flex items-center justify-center shrink-0 hover:scale-105 transition-transform cursor-pointer"
+        >
+          <PixelTrashIcon />
+        </button>
+      ) : (
+        <span
+          style={{ backgroundColor: accentColor }}
+          className="w-[36px] h-[36px] rounded-full border-2 border-[#FDFCEA] text-[#05131C] flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
+        >
+          <PixelCardChevronRightIcon />
+        </span>
+      )}
+    </div>
+  );
+};
+
 export const ProfilePage: React.FC = () => {
+  const navigate = useNavigate();
+
   // Авторизация пользователя
   const [isAuthorized, setIsAuthorized] = useState<boolean>(() => {
     const saved = localStorage.getItem(STORAGE_AUTH_KEY);
@@ -55,10 +151,10 @@ export const ProfilePage: React.FC = () => {
     text: string;
   } | null>(null);
 
-  // Активная вкладка ЛК
-  const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
+  // По дефолту при нажатии в хедере кнопки ЛК пользователь попадает в раздел «Активность»
+  const [activeTab, setActiveTab] = useState<ProfileTab>('activity');
 
-  // Сохранённый и редактируемый профиль (по умолчанию avatarUrl = '' — пустая жёлтая аватарка)
+  // Сохранённый и редактируемый профиль
   const [savedProfile, setSavedProfile] = useState<UserProfileData>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_PROFILE_KEY);
@@ -89,12 +185,12 @@ export const ProfilePage: React.FC = () => {
     };
   }, []);
 
-  // Модальное окно удаления профиля (по ЧТЗ 2.2.2)
+  // Модальное окно удаления профиля
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirmWord, setDeleteConfirmWord] = useState('');
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // Активность: начатые и избранные карты
+  // Активность: начатые («Ваши карты») и избранные («Избранные карты»)
   const [startedMaps] = useState<UserRoadmapProgress[]>(initialStartedMaps);
   const [favoriteMaps, setFavoriteMaps] = useState<UserRoadmapProgress[]>(() => {
     try {
@@ -127,7 +223,6 @@ export const ProfilePage: React.FC = () => {
     isValidPhone(formProfile.phone) &&
     focusedField !== 'phone';
 
-  // Открытие галереи при клике на аватарку
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
   };
@@ -213,8 +308,8 @@ export const ProfilePage: React.FC = () => {
   const handleLogout = () => {
     setIsAuthorized(false);
     localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(false));
-    setAuthMode('login');
-    setAuthMessage(null);
+    window.dispatchEvent(new Event('auth-changed'));
+    navigate('/login');
   };
 
   const handleConfirmDeleteAccount = (e: React.FormEvent) => {
@@ -310,6 +405,10 @@ export const ProfilePage: React.FC = () => {
             authContact.trim().length > 0 &&
             authPassword.length > 0;
 
+  if (!isAuthorized) {
+    return <Navigate to="/login" replace />;
+  }
+      
     return (
       <div className="min-h-[calc(100vh-88px)] bg-[#05131C] text-[#FFFFFF] flex flex-col justify-between">
         <main className="w-full px-6 lg:px-[90px] py-12 flex items-center justify-center flex-1">
@@ -362,7 +461,7 @@ export const ProfilePage: React.FC = () => {
                   type="text"
                   value={authContact}
                   onChange={(e) => setAuthContact(e.target.value)}
-                  placeholder="example@skillmap.ru"
+                  placeholder="example@myskill.ru"
                   className="w-full h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] px-4 text-[14px] text-[#FDFCEA]/55 focus:text-[#FDFCEA] focus:shadow-[0_0_5px_#FDFCEA] focus:outline-none transition"
                 />
               </div>
@@ -481,7 +580,6 @@ export const ProfilePage: React.FC = () => {
         <div className="flex flex-col lg:flex-row items-stretch gap-5">
           {/* 1. ЛЕВОЕ БОКОВОЕ МЕНЮ (208px, контур 2px #DDD2FD) */}
           <aside className="w-full lg:w-[208px] shrink-0 rounded-[16px] border-2 border-[#DDD2FD] bg-[#FDFCEA0D] p-3.5 flex flex-col justify-between lg:min-h-[680px] select-none">
-            {/* Три вкладки навигации с пиксельным шрифтом и точными цветами */}
             <nav
               style={{ fontFamily: 'UnifontExMono, monospace' }}
               className="space-y-2 pt-1"
@@ -535,7 +633,7 @@ export const ProfilePage: React.FC = () => {
               </button>
             </nav>
 
-            {/* Нижний мини-профиль в меню (40x40: фото или пустая жёлтая аватарка) */}
+            {/* Нижний мини-профиль в меню */}
             <div className="pt-8 lg:pt-0 px-2 pb-1 flex items-center gap-3">
               {savedProfile.avatarUrl ? (
                 <img
@@ -556,586 +654,591 @@ export const ProfilePage: React.FC = () => {
           </aside>
 
           {/* 2. ПРАВАЯ ОБЛАСТЬ СОДЕРЖИМОГО */}
-          <div className="flex-1 min-w-0 space-y-5">
-            {/* ВЕРХНЯЯ КАРТОЧКА ПОЛЬЗОВАТЕЛЯ */}
-            <section className="w-full rounded-[20px] border-2 border-[#FFF886] bg-[#05131C] px-6 sm:px-8 py-6 flex flex-wrap items-center justify-between gap-4 shadow-[0_0_10px_rgba(255,248,134,0.3)]">
-              <div className="flex items-center gap-5 sm:gap-7 min-w-0">
-                {/* АВАТАРКА 100x100: по умолчанию пустая жёлтая (#FFF886) с иконкой #05131C */}
-                <div className="relative group shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleAvatarClick}
-                    title="Нажмите, чтобы загрузить фото из галереи"
-                    className="w-[100px] h-[100px] rounded-full border border-[#FFF886] bg-[#FFF886] text-[#05131C] shadow-[0_0_10px_#FFF886] flex items-center justify-center overflow-hidden relative cursor-pointer transition hover:brightness-105"
-                  >
-                    {savedProfile.avatarUrl ? (
-                      <img
-                        src={savedProfile.avatarUrl}
-                        alt={savedProfile.nickname}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <PixelEmptyAvatarUserIcon size={50} />
-                    )}
-
-                    {/* Подсказка при наведении на аватарку */}
-                    <div className="absolute inset-0 bg-[#05131C]/75 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-center px-2">
-                      <span
-                        style={{ fontFamily: 'UnifontExMono, monospace' }}
-                        className="text-[11px] leading-tight text-[#FFF886]"
-                      >
-                        {savedProfile.avatarUrl ? 'Изменить фото' : 'Загрузить фото'}
-                      </span>
-                    </div>
-                  </button>
-
-                  {/* Кнопка сброса фото обратно в пустую аватарку (если фото загружено) */}
-                  {savedProfile.avatarUrl && (
-                    <button
-                      type="button"
-                      onClick={handleResetAvatar}
-                      title="Удалить фото"
-                      className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#05131C] border border-[#FF383C] text-[#FF383C] hover:bg-[#FF383C] hover:text-[#05131C] text-[12px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer"
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-
-                <div className="min-w-0">
-                  <h1
-                    style={{ fontFamily: 'UnifontExMono, monospace' }}
-                    className="text-2xl sm:text-[32px] text-[#FFF886] leading-tight truncate"
-                  >
-                    {savedProfile.nickname}
-                  </h1>
-                  <p className="text-[14px] text-[#FFF886] mt-1">
-                    {activeTab === 'profile' && 'Настройки вашего аккаунта'}
-                    {activeTab === 'activity' && 'Ваши начатые и избранные карты навыков'}
-                    {activeTab === 'achievements' &&
-                      `Получено достижений: ${unlockedAchievements.length} · Всего очков: ${totalAchievementPoints}`}
-                  </p>
-                </div>
-              </div>
-
-              {/* Кнопка «Выйти»: default #FDFCEA80 (50%), hover заливка #FDFCEA + цвет #05131C */}
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="h-[43px] px-5 rounded-[30px] border-2 border-[#FDFCEA80] bg-[#05131C] text-[#FDFCEA80] text-[14px] inline-flex items-center gap-2.5 hover:bg-[#FDFCEA] hover:border-[#FDFCEA] hover:text-[#05131C] transition cursor-pointer select-none"
-              >
-                <span>Выйти</span>
-                <PixelLogoutIcon />
-              </button>
-            </section>
-
-            {/* ================= ВКЛАДКА 1: ПРОФИЛЬ (ТОЧНО ПО FIGMA) ================= */}
-            {activeTab === 'profile' && (
-              <form
-                onSubmit={handleSaveProfile}
-                className="grid grid-cols-1 xl:grid-cols-[1.04fr_1fr] gap-5 items-stretch"
-              >
-                {/* ЛЕВАЯ КАРТОЧКА: ОСНОВНАЯ ИНФОРМАЦИЯ */}
-                <div className="rounded-[20px] border-2 border-[#FFF886] bg-[#05131C] p-6 sm:p-7 flex flex-col justify-between space-y-4">
-                  <div className="space-y-4">
-                    <h2
-                      style={{ fontFamily: 'Product Sans Black, Product Sans, sans-serif' }}
-                      className="text-[20px] sm:text-[22px] font-black text-[#FFFFFF]"
-                    >
-                      Основная информация
-                    </h2>
-
-                    {/* Никнейм* */}
-                    <div className="space-y-1.5">
-                      <label className="block text-[14px] text-[#FFFFFF]">
-                        Никнейм*
-                      </label>
-                      <input
-                        type="text"
-                        value={formProfile.nickname}
-                        onFocus={() => setFocusedField('nickname')}
-                        onBlur={() => setFocusedField(null)}
-                        onChange={(e) => {
-                          setIsSavedSuccess(false);
-                          setFormError(null);
-                          setFormProfile((prev) => ({
-                            ...prev,
-                            nickname: e.target.value,
-                          }));
-                        }}
-                        placeholder="Александр Скиллмапов"
-                        className={`w-full h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] px-4 text-[14.5px] placeholder-[#FDFCEA]/45 focus:outline-none transition ${
-                          focusedField === 'nickname'
-                            ? 'text-[#FDFCEA] shadow-[0_0_5px_#FDFCEA]'
-                            : 'text-[#FDFCEA]/55'
-                        }`}
-                      />
-                    </div>
-
-                    {/* Email или Телефон */}
-                    <div className="space-y-2 pt-0.5">
-                      <p className="text-[13px] text-[#FDFCEA]/50">
-                        Укажите хотя бы один способ связи: Email или Телефон
-                      </p>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                        {/* Поле Email */}
-                        <div className="space-y-1.5">
-                          <label className="block text-[14px] text-[#FFFFFF]">
-                            Email
-                          </label>
-                          <div
-                            className={`w-full h-[43px] rounded-[10px] border bg-[#FDFCEA0D] px-3.5 flex items-center justify-between gap-2 transition ${
-                              focusedField === 'email'
-                                ? 'border-[#FDFCEA] shadow-[0_0_5px_#FDFCEA]'
-                                : isEmailConfirmed
-                                  ? 'border-[#34C759]'
-                                  : 'border-[#FDFCEA]'
-                            }`}
-                          >
-                            <input
-                              type="email"
-                              value={formProfile.email}
-                              onFocus={() => setFocusedField('email')}
-                              onBlur={() => setFocusedField(null)}
-                              onChange={(e) => {
-                                setIsSavedSuccess(false);
-                                setFormError(null);
-                                setFormProfile((prev) => ({
-                                  ...prev,
-                                  email: e.target.value,
-                                }));
-                              }}
-                              placeholder=""
-                              className={`w-full bg-transparent text-[14.5px] focus:outline-none ${
-                                focusedField === 'email'
-                                  ? 'text-[#FDFCEA]'
-                                  : 'text-[#FDFCEA]/60'
-                              }`}
-                            />
-                            {isEmailConfirmed && (
-                              <span className="text-[#34C759] shrink-0" title="Подтверждено">
-                                <PixelVerifiedCheckIcon />
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Поле Телефон */}
-                        <div className="space-y-1.5">
-                          <label className="block text-[14px] text-[#FFFFFF]">
-                            Телефон
-                          </label>
-                          <div
-                            className={`w-full h-[43px] rounded-[10px] border bg-[#FDFCEA0D] px-3.5 flex items-center justify-between gap-2 transition ${
-                              focusedField === 'phone'
-                                ? 'border-[#FDFCEA] shadow-[0_0_5px_#FDFCEA]'
-                                : isPhoneConfirmed
-                                  ? 'border-[#34C759]'
-                                  : 'border-[#FDFCEA]'
-                            }`}
-                          >
-                            <input
-                              type="tel"
-                              value={formProfile.phone}
-                              onFocus={() => setFocusedField('phone')}
-                              onBlur={() => setFocusedField(null)}
-                              onChange={(e) => {
-                                setIsSavedSuccess(false);
-                                setFormError(null);
-                                setFormProfile((prev) => ({
-                                  ...prev,
-                                  phone: e.target.value,
-                                }));
-                              }}
-                              placeholder=""
-                              className={`w-full bg-transparent text-[14.5px] focus:outline-none ${
-                                focusedField === 'phone'
-                                  ? 'text-[#FDFCEA]'
-                                  : 'text-[#FDFCEA]/60'
-                              }`}
-                            />
-                            {isPhoneConfirmed && (
-                              <span className="text-[#34C759] shrink-0" title="Подтверждено">
-                                <PixelVerifiedCheckIcon />
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {formError && (
-                        <p className="text-[12.5px] text-[#FF383C] pt-0.5">{formError}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Кнопка «Сохранить изменения» */}
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      disabled={!isDirty && !isSavedSuccess}
-                      className={`w-full h-[43px] rounded-[30px] text-[#05131C] font-medium text-[15px] transition select-none ${
-                        isSavedSuccess
-                          ? 'bg-[#DDD2FD] shadow-[0_0_10px_#DDD2FD] cursor-default'
-                          : isDirty
-                            ? 'bg-[#FFF886] hover:shadow-[0_0_10px_#FFF886] cursor-pointer'
-                            : 'bg-[#FFF886] opacity-90 cursor-not-allowed'
-                      }`}
-                    >
-                      {isSavedSuccess
-                        ? 'Изменения успешно сохранены!'
-                        : 'Сохранить изменения'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* ПРАВАЯ КОЛОНКА: ССЫЛКИ + ОПАСНАЯ ЗОНА */}
-                <div className="flex flex-col justify-between gap-5">
-                  {/* КАРТОЧКА ССЫЛОК */}
-                  <div className="rounded-[20px] border-2 border-[#FFF886] bg-[#05131C] p-6 sm:p-7 space-y-4">
-                    <h2
-                      style={{ fontFamily: 'Product Sans Black, Product Sans, sans-serif' }}
-                      className="text-[20px] sm:text-[22px] font-black text-[#FFFFFF]"
-                    >
-                      Ссылки
-                    </h2>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      {/* GitHub */}
-                      <label
-                        className={`h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] pl-[15px] pr-3 flex items-center gap-2.5 transition ${
-                          focusedField === 'github'
-                            ? 'text-[#FDFCEA] shadow-[0_0_5px_#FDFCEA]'
-                            : 'text-[#FDFCEA]/55'
-                        }`}
-                      >
-                        <PixelGitHubIcon />
-                        <input
-                          type="text"
-                          value={formProfile.links.github}
-                          onFocus={() => setFocusedField('github')}
-                          onBlur={() => setFocusedField(null)}
-                          onChange={(e) => {
-                            setIsSavedSuccess(false);
-                            setFormProfile((prev) => ({
-                              ...prev,
-                              links: { ...prev.links, github: e.target.value },
-                            }));
-                          }}
-                          placeholder="GitHub"
-                          className="w-full bg-transparent text-[14.5px] text-inherit placeholder-[#FDFCEA]/50 focus:outline-none"
-                        />
-                      </label>
-
-                      {/* VK */}
-                      <label
-                        className={`h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] pl-[15px] pr-3 flex items-center gap-2.5 transition ${
-                          focusedField === 'vk'
-                            ? 'text-[#FDFCEA] shadow-[0_0_5px_#FDFCEA]'
-                            : 'text-[#FDFCEA]/55'
-                        }`}
-                      >
-                        <PixelVKIcon />
-                        <input
-                          type="text"
-                          value={formProfile.links.vk}
-                          onFocus={() => setFocusedField('vk')}
-                          onBlur={() => setFocusedField(null)}
-                          onChange={(e) => {
-                            setIsSavedSuccess(false);
-                            setFormProfile((prev) => ({
-                              ...prev,
-                              links: { ...prev.links, vk: e.target.value },
-                            }));
-                          }}
-                          placeholder="VK"
-                          className="w-full bg-transparent text-[14.5px] text-inherit placeholder-[#FDFCEA]/50 focus:outline-none"
-                        />
-                      </label>
-
-                      {/* Telegram */}
-                      <label
-                        className={`h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] pl-[15px] pr-3 flex items-center gap-2.5 transition ${
-                          focusedField === 'telegram'
-                            ? 'text-[#FDFCEA] shadow-[0_0_5px_#FDFCEA]'
-                            : 'text-[#FDFCEA]/55'
-                        }`}
-                      >
-                        <PixelTelegramIcon />
-                        <input
-                          type="text"
-                          value={formProfile.links.telegram}
-                          onFocus={() => setFocusedField('telegram')}
-                          onBlur={() => setFocusedField(null)}
-                          onChange={(e) => {
-                            setIsSavedSuccess(false);
-                            setFormProfile((prev) => ({
-                              ...prev,
-                              links: { ...prev.links, telegram: e.target.value },
-                            }));
-                          }}
-                          placeholder="Telegram"
-                          className="w-full bg-transparent text-[14.5px] text-inherit placeholder-[#FDFCEA]/50 focus:outline-none"
-                        />
-                      </label>
-
-                      {/* Website */}
-                      <label
-                        className={`h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] pl-[15px] pr-3 flex items-center gap-2.5 transition ${
-                          focusedField === 'website'
-                            ? 'text-[#FDFCEA] shadow-[0_0_5px_#FDFCEA]'
-                            : 'text-[#FDFCEA]/55'
-                        }`}
-                      >
-                        <PixelWebsiteIcon />
-                        <input
-                          type="text"
-                          value={formProfile.links.website}
-                          onFocus={() => setFocusedField('website')}
-                          onBlur={() => setFocusedField(null)}
-                          onChange={(e) => {
-                            setIsSavedSuccess(false);
-                            setFormProfile((prev) => ({
-                              ...prev,
-                              links: { ...prev.links, website: e.target.value },
-                            }));
-                          }}
-                          placeholder="Website"
-                          className="w-full bg-transparent text-[14.5px] text-inherit placeholder-[#FDFCEA]/50 focus:outline-none"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* ОПАСНАЯ ЗОНА (КРАСНЫЙ #FF383C) */}
-                  <div className="rounded-[20px] border-2 border-[#FF383C] bg-[#05131C] px-6 sm:px-7 py-5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <h2
-                        style={{ fontFamily: 'Product Sans Black, Product Sans, sans-serif' }}
-                        className="text-[19px] sm:text-[20px] font-black text-[#FDFCEA]"
-                      >
-                        Опасная зона
-                      </h2>
-                      <p className="text-[13px] text-[#FDFCEA]/85 leading-[1.35]">
-                        Удаление аккаунта необратимо.
-                        <br />
-                        Все данные
-                        <br />и прогресс будут стёрты.
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDeleteConfirmWord('');
-                        setDeleteError(null);
-                        setIsDeleteModalOpen(true);
-                      }}
-                      className="shrink-0 h-[43px] px-[21px] rounded-[30px] border border-[#FF383C] bg-[#05131C] text-[#FDFCEA] text-[14px] hover:bg-[#FF383C] hover:text-[#05131C] transition cursor-pointer select-none"
-                    >
-                      Удалить профиль
-                    </button>
-                  </div>
-                </div>
-              </form>
-            )}
-
-            {/* ================= ВКЛАДКА 2: АКТИВНОСТЬ (ЧТЗ 2.2.1) ================= */}
+          <div className="flex-1 min-w-0 space-y-6">
+            {/* ================= ВКЛАДКА 1: АКТИВНОСТЬ (ПО МАКЕТУ FIGMA) ================= */}
             {activeTab === 'activity' && (
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-                {/* Начатые карты пользователя */}
-                <div className="rounded-[20px] border-2 border-[#FFF886] bg-[#05131C] p-6 sm:p-7 space-y-4">
-                  <h2
-                    style={{ fontFamily: 'Product Sans Black, Product Sans, sans-serif' }}
-                    className="text-[20px] font-black text-[#FFFFFF]"
-                  >
-                    Начатые карты
-                  </h2>
-
-                  {startedMaps.length === 0 ? (
-                    <p className="text-[14px] text-[#FDFCEA]/75 leading-relaxed">
-                      Отсутствуют начатые карты. Выберите карту из{' '}
-                      <Link to="/roadmap" className="text-[#FFF886] underline">
-                        списка
-                      </Link>{' '}
-                      и начните своё обучение!
+              <div className="space-y-8">
+                {/* ВЕРХНИЙ БЛОК В РАМКЕ: ИЗБРАННЫЕ КАРТЫ */}
+                <section className="w-full rounded-[24px] border border-[#99C3FD] bg-[#05131C] p-6 sm:p-7 shadow-[0_0_12px_rgba(153,195,253,0.28)] space-y-5">
+                  <div className="space-y-2">
+                    <h1
+                      style={{ fontFamily: 'UnifontExMono, monospace' }}
+                      className="text-[26px] sm:text-[32px] text-[#FDFCEA] leading-none"
+                    >
+                      Избранные карты
+                    </h1>
+                    <p
+                      style={{ fontFamily: 'Product Sans, sans-serif' }}
+                      className="text-[15px] sm:text-[16px] text-[#FFFFFF] leading-tight"
+                    >
+                      Сохраненные карты для быстрого доступа
                     </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {startedMaps.map((map) => (
-                        <Link
-                          key={map.id}
-                          to={map.path}
-                          className="block rounded-[14px] border border-[#FDFCEA]/60 bg-[#FDFCEA0D] p-4 hover:border-[#FFF886] transition space-y-2.5"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span
-                              style={{ fontFamily: 'UnifontExMono, monospace' }}
-                              className="text-[17px] text-[#FDFCEA]"
-                            >
-                              {map.title}
-                            </span>
-                            <span
-                              style={{ fontFamily: 'UnifontExMono, monospace' }}
-                              className="text-[15px] text-[#FFF886]"
-                            >
-                              {map.progress}%
-                            </span>
-                          </div>
-                          <div className="w-full h-2.5 rounded-full bg-[#FDFCEA]/15 overflow-hidden">
-                            <div
-                              className="h-full bg-[#FFF886] rounded-full"
-                              style={{ width: `${map.progress}%` }}
-                            />
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Избранные карты пользователя */}
-                <div className="rounded-[20px] border-2 border-[#DDD2FD] bg-[#05131C] p-6 sm:p-7 space-y-4">
-                  <h2
-                    style={{ fontFamily: 'Product Sans Black, Product Sans, sans-serif' }}
-                    className="text-[20px] font-black text-[#FFFFFF]"
-                  >
-                    Избранные карты
-                  </h2>
+                  </div>
 
                   {favoriteMaps.length === 0 ? (
-                    <p className="text-[14px] text-[#FDFCEA]/75 leading-relaxed">
+                    <div className="rounded-[20px] border border-[#FDFCEA]/25 bg-[#FDFCEA0D] p-6 text-[15px] text-[#FDFCEA]/75 leading-relaxed">
                       Отсутствуют избранные карты. Отметьте особо понравившиеся направления в{' '}
-                      <Link to="/roadmap" className="text-[#DDD2FD] underline">
+                      <Link to="/roadmap" className="text-[#99C3FD] underline">
                         списке
                       </Link>{' '}
                       интерактивных карт!
-                    </p>
+                    </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {favoriteMaps.map((map) => (
-                        <div
+                        <ActivityRoadmapCard
                           key={map.id}
-                          className="rounded-[14px] border border-[#FDFCEA]/60 bg-[#FDFCEA0D] p-4 space-y-2.5"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <Link
-                              to={map.path}
-                              style={{ fontFamily: 'UnifontExMono, monospace' }}
-                              className="text-[17px] text-[#FDFCEA] hover:text-[#DDD2FD] transition"
-                            >
-                              {map.title}
-                            </Link>
-                            <div className="flex items-center gap-3 shrink-0">
-                              <span
-                                style={{ fontFamily: 'UnifontExMono, monospace' }}
-                                className="text-[15px] text-[#DDD2FD]"
-                              >
-                                {map.progress}%
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => setMapToRemoveId(map.id)}
-                                className="text-[12px] px-3 py-1 rounded-full border border-[#FF383C] text-[#FDFCEA] hover:bg-[#FF383C] hover:text-[#05131C] transition cursor-pointer"
-                              >
-                                Удалить
-                              </button>
-                            </div>
-                          </div>
-                          <div className="w-full h-2.5 rounded-full bg-[#FDFCEA]/15 overflow-hidden">
-                            <div
-                              className="h-full bg-[#DDD2FD] rounded-full"
-                              style={{ width: `${map.progress}%` }}
-                            />
-                          </div>
-                        </div>
+                          map={map}
+                          variant="favorite"
+                          onOpen={(path) => navigate(path)}
+                          onRequestRemove={(id) => setMapToRemoveId(id)}
+                        />
                       ))}
                     </div>
                   )}
-                </div>
+                </section>
+
+                {/* НИЖНИЙ БЛОК: ВАШИ КАРТЫ */}
+                <section className="w-full px-1 sm:px-2 space-y-5">
+                  <div className="space-y-2">
+                    <h2
+                      style={{ fontFamily: 'UnifontExMono, monospace' }}
+                      className="text-[26px] sm:text-[32px] text-[#FDFCEA] leading-none"
+                    >
+                      Ваши карты
+                    </h2>
+                    <p
+                      style={{ fontFamily: 'Product Sans, sans-serif' }}
+                      className="text-[15px] sm:text-[16px] text-[#FFFFFF] leading-tight"
+                    >
+                      Начатые вами интерактивные карты и прогресс
+                    </p>
+                  </div>
+
+                  {startedMaps.length === 0 ? (
+                    <div className="rounded-[20px] border border-[#FDFCEA]/25 bg-[#FDFCEA0D] p-6 text-[15px] text-[#FDFCEA]/75 leading-relaxed">
+                      Отсутствуют начатые карты. Выберите карту из{' '}
+                      <Link to="/roadmap" className="text-[#99C3FD] underline">
+                        списка
+                      </Link>{' '}
+                      и начните своё обучение!
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {startedMaps.map((map) => (
+                        <ActivityRoadmapCard
+                          key={map.id}
+                          map={map}
+                          variant="started"
+                          onOpen={(path) => navigate(path)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
               </div>
             )}
 
-            {/* ================= ВКЛАДКА 3: ДОСТИЖЕНИЯ (ЧТЗ 2.2.3) ================= */}
-            {activeTab === 'achievements' && (
-              <div className="space-y-5">
-                {/* Счётчик очков */}
-                <div className="rounded-[20px] border-2 border-[#DDD2FD] bg-[#05131C] px-6 py-4 flex flex-wrap items-center justify-between gap-4">
-                  <div className="text-[15px] text-[#FDFCEA]">
-                    Получено достижений:{' '}
-                    <span className="font-bold text-[#FFF886]">
-                      {unlockedAchievements.length} из {achievements.length}
-                    </span>
-                  </div>
-                  <div
-                    style={{ fontFamily: 'UnifontExMono, monospace' }}
-                    className="text-[18px] text-[#FFF886]"
-                  >
-                    Счётчик очков: {totalAchievementPoints} XP
-                  </div>
-                </div>
+            {/* ================= ВКЛАДКА 2: ПРОФИЛЬ ================= */}
+            {activeTab === 'profile' && (
+              <>
+                {/* ВЕРХНЯЯ КАРТОЧКА ПОЛЬЗОВАТЕЛЯ */}
+                <section className="w-full rounded-[20px] border-2 border-[#FFF886] bg-[#05131C] px-6 sm:px-8 py-6 flex flex-wrap items-center justify-between gap-4 shadow-[0_0_10px_rgba(255,248,134,0.3)]">
+                  <div className="flex items-center gap-5 sm:gap-7 min-w-0">
+                    <div className="relative group shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleAvatarClick}
+                        title="Нажмите, чтобы загрузить фото из галереи"
+                        className="w-[100px] h-[100px] rounded-full border border-[#FFF886] bg-[#FFF886] text-[#05131C] shadow-[0_0_10px_#FFF886] flex items-center justify-center overflow-hidden relative cursor-pointer transition hover:brightness-105"
+                      >
+                        {savedProfile.avatarUrl ? (
+                          <img
+                            src={savedProfile.avatarUrl}
+                            alt={savedProfile.nickname}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <PixelEmptyAvatarUserIcon size={50} />
+                        )}
 
-                {/* Список всех достижений */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {achievements.map((ach) => {
-                    const isUnlocked = ach.unlockedCount > 0;
-                    return (
-                      <div
-                        key={ach.id}
-                        className={`rounded-[18px] border-2 p-5 flex flex-col justify-between space-y-3 transition ${
-                          isUnlocked
-                            ? 'border-[#FFF886] bg-[#FFF886]/[0.06]'
-                            : 'border-[#FDFCEA]/25 bg-[#FDFCEA0D] opacity-75'
+                        <div className="absolute inset-0 bg-[#05131C]/75 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-center px-2">
+                          <span
+                            style={{ fontFamily: 'UnifontExMono, monospace' }}
+                            className="text-[11px] leading-tight text-[#FFF886]"
+                          >
+                            {savedProfile.avatarUrl ? 'Изменить фото' : 'Загрузить фото'}
+                          </span>
+                        </div>
+                      </button>
+
+                      {savedProfile.avatarUrl && (
+                        <button
+                          type="button"
+                          onClick={handleResetAvatar}
+                          title="Удалить фото"
+                          className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#05131C] border border-[#FF383C] text-[#FF383C] hover:bg-[#FF383C] hover:text-[#05131C] text-[12px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="min-w-0">
+                      <h1
+                        style={{ fontFamily: 'UnifontExMono, monospace' }}
+                        className="text-2xl sm:text-[32px] text-[#FFF886] leading-tight truncate"
+                      >
+                        {savedProfile.nickname}
+                      </h1>
+                      <p className="text-[14px] text-[#FFF886] mt-1">
+                        Настройки вашего аккаунта
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="h-[43px] px-5 rounded-[30px] border-2 border-[#FDFCEA80] bg-[#05131C] text-[#FDFCEA80] text-[14px] inline-flex items-center gap-2.5 hover:bg-[#FDFCEA] hover:border-[#FDFCEA] hover:text-[#05131C] transition cursor-pointer select-none"
+                  >
+                    <span>Выйти</span>
+                    <PixelLogoutIcon />
+                  </button>
+                </section>
+
+                <form
+                  onSubmit={handleSaveProfile}
+                  className="grid grid-cols-1 xl:grid-cols-[1.04fr_1fr] gap-5 items-stretch"
+                >
+                  {/* ЛЕВАЯ КАРТОЧКА: ОСНОВНАЯ ИНФОРМАЦИЯ */}
+                  <div className="rounded-[20px] border-2 border-[#FFF886] bg-[#05131C] p-6 sm:p-7 flex flex-col justify-between space-y-4">
+                    <div className="space-y-4">
+                      <h2
+                        style={{ fontFamily: 'Product Sans Black, Product Sans, sans-serif' }}
+                        className="text-[20px] sm:text-[22px] font-black text-[#FFFFFF]"
+                      >
+                        Основная информация
+                      </h2>
+
+                      <div className="space-y-1.5">
+                        <label className="block text-[14px] text-[#FFFFFF]">
+                          Никнейм*
+                        </label>
+                        <input
+                          type="text"
+                          value={formProfile.nickname}
+                          onFocus={() => setFocusedField('nickname')}
+                          onBlur={() => setFocusedField(null)}
+                          onChange={(e) => {
+                            setIsSavedSuccess(false);
+                            setFormError(null);
+                            setFormProfile((prev) => ({
+                              ...prev,
+                              nickname: e.target.value,
+                            }));
+                          }}
+                          placeholder="Александр Скиллмапов"
+                          className={`w-full h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] px-4 text-[14.5px] placeholder-[#FDFCEA]/45 focus:outline-none transition ${
+                            focusedField === 'nickname'
+                              ? 'text-[#FDFCEA] shadow-[0_0_5px_#FDFCEA]'
+                              : 'text-[#FDFCEA]/55'
+                          }`}
+                        />
+                      </div>
+
+                      <div className="space-y-2 pt-0.5">
+                        <p className="text-[13px] text-[#FDFCEA]/50">
+                          Укажите хотя бы один способ связи: Email или Телефон
+                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                          <div className="space-y-1.5">
+                            <label className="block text-[14px] text-[#FFFFFF]">
+                              Email
+                            </label>
+                            <div
+                              className={`w-full h-[43px] rounded-[10px] border bg-[#FDFCEA0D] px-3.5 flex items-center justify-between gap-2 transition ${
+                                focusedField === 'email'
+                                  ? 'border-[#FDFCEA] shadow-[0_0_5px_#FDFCEA]'
+                                  : isEmailConfirmed
+                                    ? 'border-[#34C759]'
+                                    : 'border-[#FDFCEA]'
+                              }`}
+                            >
+                              <input
+                                type="email"
+                                value={formProfile.email}
+                                onFocus={() => setFocusedField('email')}
+                                onBlur={() => setFocusedField(null)}
+                                onChange={(e) => {
+                                  setIsSavedSuccess(false);
+                                  setFormError(null);
+                                  setFormProfile((prev) => ({
+                                    ...prev,
+                                    email: e.target.value,
+                                  }));
+                                }}
+                                placeholder=""
+                                className={`w-full bg-transparent text-[14.5px] focus:outline-none ${
+                                  focusedField === 'email'
+                                    ? 'text-[#FDFCEA]'
+                                    : 'text-[#FDFCEA]/60'
+                                }`}
+                              />
+                              {isEmailConfirmed && (
+                                <span className="text-[#34C759] shrink-0" title="Подтверждено">
+                                  <PixelVerifiedCheckIcon />
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="block text-[14px] text-[#FFFFFF]">
+                              Телефон
+                            </label>
+                            <div
+                              className={`w-full h-[43px] rounded-[10px] border bg-[#FDFCEA0D] px-3.5 flex items-center justify-between gap-2 transition ${
+                                focusedField === 'phone'
+                                  ? 'border-[#FDFCEA] shadow-[0_0_5px_#FDFCEA]'
+                                  : isPhoneConfirmed
+                                    ? 'border-[#34C759]'
+                                    : 'border-[#FDFCEA]'
+                              }`}
+                            >
+                              <input
+                                type="tel"
+                                value={formProfile.phone}
+                                onFocus={() => setFocusedField('phone')}
+                                onBlur={() => setFocusedField(null)}
+                                onChange={(e) => {
+                                  setIsSavedSuccess(false);
+                                  setFormError(null);
+                                  setFormProfile((prev) => ({
+                                    ...prev,
+                                    phone: e.target.value,
+                                  }));
+                                }}
+                                placeholder=""
+                                className={`w-full bg-transparent text-[14.5px] focus:outline-none ${
+                                  focusedField === 'phone'
+                                    ? 'text-[#FDFCEA]'
+                                    : 'text-[#FDFCEA]/60'
+                                }`}
+                              />
+                              {isPhoneConfirmed && (
+                                <span className="text-[#34C759] shrink-0" title="Подтверждено">
+                                  <PixelVerifiedCheckIcon />
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {formError && (
+                          <p className="text-[12.5px] text-[#FF383C] pt-0.5">{formError}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={!isDirty && !isSavedSuccess}
+                        className={`w-full h-[43px] rounded-[30px] text-[#05131C] font-medium text-[15px] transition select-none ${
+                          isSavedSuccess
+                            ? 'bg-[#DDD2FD] shadow-[0_0_10px_#DDD2FD] cursor-default'
+                            : isDirty
+                              ? 'bg-[#FFF886] hover:shadow-[0_0_10px_#FFF886] cursor-pointer'
+                              : 'bg-[#FFF886] opacity-90 cursor-not-allowed'
                         }`}
                       >
-                        <div className="space-y-1.5">
-                          <div className="flex items-start justify-between gap-2">
-                            <span
-                              style={{
-                                fontFamily: 'Product Sans Black, Product Sans, sans-serif',
-                              }}
-                              className={`text-[16px] font-black ${
-                                isUnlocked ? 'text-[#FFF886]' : 'text-[#FDFCEA]'
+                        {isSavedSuccess
+                          ? 'Изменения успешно сохранены!'
+                          : 'Сохранить изменения'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ПРАВАЯ КОЛОНКА: ССЫЛКИ + ОПАСНАЯ ЗОНА */}
+                  <div className="flex flex-col justify-between gap-5">
+                    <div className="rounded-[20px] border-2 border-[#FFF886] bg-[#05131C] p-6 sm:p-7 space-y-4">
+                      <h2
+                        style={{ fontFamily: 'Product Sans Black, Product Sans, sans-serif' }}
+                        className="text-[20px] sm:text-[22px] font-black text-[#FFFFFF]"
+                      >
+                        Ссылки
+                      </h2>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <label
+                          className={`h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] pl-[15px] pr-3 flex items-center gap-2.5 transition ${
+                            focusedField === 'github'
+                              ? 'text-[#FDFCEA] shadow-[0_0_5px_#FDFCEA]'
+                              : 'text-[#FDFCEA]/55'
+                          }`}
+                        >
+                          <PixelGitHubIcon />
+                          <input
+                            type="text"
+                            value={formProfile.links.github}
+                            onFocus={() => setFocusedField('github')}
+                            onBlur={() => setFocusedField(null)}
+                            onChange={(e) => {
+                              setIsSavedSuccess(false);
+                              setFormProfile((prev) => ({
+                                ...prev,
+                                links: { ...prev.links, github: e.target.value },
+                              }));
+                            }}
+                            placeholder="GitHub"
+                            className="w-full bg-transparent text-[14.5px] text-inherit placeholder-[#FDFCEA]/50 focus:outline-none"
+                          />
+                        </label>
+
+                        <label
+                          className={`h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] pl-[15px] pr-3 flex items-center gap-2.5 transition ${
+                            focusedField === 'vk'
+                              ? 'text-[#FDFCEA] shadow-[0_0_5px_#FDFCEA]'
+                              : 'text-[#FDFCEA]/55'
+                          }`}
+                        >
+                          <PixelVKIcon />
+                          <input
+                            type="text"
+                            value={formProfile.links.vk}
+                            onFocus={() => setFocusedField('vk')}
+                            onBlur={() => setFocusedField(null)}
+                            onChange={(e) => {
+                              setIsSavedSuccess(false);
+                              setFormProfile((prev) => ({
+                                ...prev,
+                                links: { ...prev.links, vk: e.target.value },
+                              }));
+                            }}
+                            placeholder="VK"
+                            className="w-full bg-transparent text-[14.5px] text-inherit placeholder-[#FDFCEA]/50 focus:outline-none"
+                          />
+                        </label>
+
+                        <label
+                          className={`h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] pl-[15px] pr-3 flex items-center gap-2.5 transition ${
+                            focusedField === 'telegram'
+                              ? 'text-[#FDFCEA] shadow-[0_0_5px_#FDFCEA]'
+                              : 'text-[#FDFCEA]/55'
+                          }`}
+                        >
+                          <PixelTelegramIcon />
+                          <input
+                            type="text"
+                            value={formProfile.links.telegram}
+                            onFocus={() => setFocusedField('telegram')}
+                            onBlur={() => setFocusedField(null)}
+                            onChange={(e) => {
+                              setIsSavedSuccess(false);
+                              setFormProfile((prev) => ({
+                                ...prev,
+                                links: { ...prev.links, telegram: e.target.value },
+                              }));
+                            }}
+                            placeholder="Telegram"
+                            className="w-full bg-transparent text-[14.5px] text-inherit placeholder-[#FDFCEA]/50 focus:outline-none"
+                          />
+                        </label>
+
+                        <label
+                          className={`h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] pl-[15px] pr-3 flex items-center gap-2.5 transition ${
+                            focusedField === 'website'
+                              ? 'text-[#FDFCEA] shadow-[0_0_5px_#FDFCEA]'
+                              : 'text-[#FDFCEA]/55'
+                          }`}
+                        >
+                          <PixelWebsiteIcon />
+                          <input
+                            type="text"
+                            value={formProfile.links.website}
+                            onFocus={() => setFocusedField('website')}
+                            onBlur={() => setFocusedField(null)}
+                            onChange={(e) => {
+                              setIsSavedSuccess(false);
+                              setFormProfile((prev) => ({
+                                ...prev,
+                                links: { ...prev.links, website: e.target.value },
+                              }));
+                            }}
+                            placeholder="Website"
+                            className="w-full bg-transparent text-[14.5px] text-inherit placeholder-[#FDFCEA]/50 focus:outline-none"
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="rounded-[20px] border-2 border-[#FF383C] bg-[#05131C] px-6 sm:px-7 py-5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <h2
+                          style={{ fontFamily: 'Product Sans Black, Product Sans, sans-serif' }}
+                          className="text-[19px] sm:text-[20px] font-black text-[#FDFCEA]"
+                        >
+                          Опасная зона
+                        </h2>
+                        <p className="text-[13px] text-[#FDFCEA]/85 leading-[1.35]">
+                          Удаление аккаунта необратимо.
+                          <br />
+                          Все данные
+                          <br />и прогресс будут стёрты.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteConfirmWord('');
+                          setDeleteError(null);
+                          setIsDeleteModalOpen(true);
+                        }}
+                        className="shrink-0 h-[43px] px-[21px] rounded-[30px] border border-[#FF383C] bg-[#05131C] text-[#FDFCEA] text-[14px] hover:bg-[#FF383C] hover:text-[#05131C] transition cursor-pointer select-none"
+                      >
+                        Удалить профиль
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </>
+            )}
+
+            {/* ================= ВКЛАДКА 3: ДОСТИЖЕНИЯ (КВАДРАТЫ НА ВСЮ ШИРИНУ) ================= */}
+            {activeTab === 'achievements' && (
+              <div className="space-y-8 w-full">
+                {/* Верхняя сиреневая плашка очков */}
+                <div>
+                  <span
+                    style={{ fontFamily: 'Product Sans, sans-serif' }}
+                    className="inline-flex items-center justify-center h-[40px] xl:h-[44px] px-6 xl:px-7 rounded-full bg-[#DDD2FD] text-[#05131C] text-[15px] xl:text-[17px] font-medium shadow-sm"
+                  >
+                    {totalAchievementPoints} очков
+                  </span>
+                </div>
+
+                {/* СЕКЦИЯ 1: ВАШИ ДОСТИЖЕНИЯ */}
+                <section className="space-y-4">
+                  <h1
+                    style={{ fontFamily: 'UnifontExMono, monospace' }}
+                    className="text-[26px] xl:text-[32px] text-[#FDFCEA] leading-none"
+                  >
+                    Ваши достижения:
+                  </h1>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 xl:gap-5">
+                    {unlockedAchievements.map((ach) => (
+                      <div
+                        key={`earned-${ach.id}`}
+                        title={ach.condition}
+                        className="relative aspect-square rounded-[22px] xl:rounded-[26px] border border-[#FFF886] bg-[#05131C] p-3 xl:p-5 flex flex-col items-center justify-between shadow-[0_0_10px_rgba(255,248,134,0.3)] transition hover:shadow-[0_0_18px_rgba(255,248,134,0.5)]"
+                      >
+                        {/* Жёлтый круглый бейдж множителя ×1 / ×2 в правом верхнем углу */}
+                        <span
+                          style={{ fontFamily: 'UnifontExMono, monospace' }}
+                          className="absolute top-2.5 right-2.5 xl:top-3.5 xl:right-3.5 w-[24px] h-[24px] xl:w-[32px] xl:h-[32px] rounded-full bg-[#FFF886] text-[#05131C] text-[11px] xl:text-[14px] font-bold flex items-center justify-center leading-none"
+                        >
+                          ×{ach.unlockedCount}
+                        </span>
+
+                        {/* Пустой спейсер сверху для точного центрирования круга */}
+                        <div className="h-2 xl:h-3" />
+
+                        {/* Круглая иконка 50% от квадрата */}
+                        <AchievementCircleBadge achievementId={ach.id} unlocked />
+
+                        {/* Название и очки */}
+                        <div className="text-center space-y-1 xl:space-y-1.5 w-full">
+                          <div
+                            style={{ fontFamily: 'UnifontExMono, monospace' }}
+                            className="text-[13px] xl:text-[17px] text-[#FFF886] leading-tight truncate"
+                          >
+                            {ach.title}
+                          </div>
+                          <div
+                            style={{ fontFamily: 'UnifontExMono, monospace' }}
+                            className="text-[11px] xl:text-[14px] text-[#FDFCEA]/70 leading-none"
+                          >
+                            {ach.points} очков
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* СЕКЦИЯ 2: КАТАЛОГ ДОСТИЖЕНИЙ */}
+                <section className="space-y-4">
+                  <h2
+                    style={{ fontFamily: 'UnifontExMono, monospace' }}
+                    className="text-[26px] xl:text-[32px] text-[#FDFCEA] leading-none"
+                  >
+                    Каталог достижений:
+                  </h2>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 xl:gap-5">
+                    {achievements.map((ach) => {
+                      const isUnlocked = ach.unlockedCount > 0;
+                      return (
+                        <div
+                          key={`catalog-${ach.id}`}
+                          title={ach.condition}
+                          className={`aspect-square rounded-[22px] xl:rounded-[26px] bg-[#05131C] p-3 xl:p-5 flex flex-col items-center justify-between transition ${
+                            isUnlocked
+                              ? 'border border-[#FFF886] shadow-[0_0_10px_rgba(255,248,134,0.3)] hover:shadow-[0_0_18px_rgba(255,248,134,0.5)]'
+                              : 'border border-[#FDFCEA]/45 hover:border-[#FDFCEA]/75'
+                          }`}
+                        >
+                          {/* Верхняя плашка: Уникальное / Многоразовое */}
+                          <span
+                            style={{ fontFamily: 'Product Sans, sans-serif' }}
+                            className={`px-3 xl:px-4 py-[2px] xl:py-1 rounded-full text-[10px] xl:text-[12px] font-medium leading-tight ${
+                              isUnlocked
+                                ? 'bg-[#FFF886] text-[#05131C]'
+                                : 'bg-[#FDFCEA]/75 text-[#05131C]'
+                            }`}
+                          >
+                            {ach.type === 'unique' ? 'Уникальное' : 'Многоразовое'}
+                          </span>
+
+                          {/* Круглая иконка 50% от квадрата */}
+                          <AchievementCircleBadge
+                            achievementId={ach.id}
+                            unlocked={isUnlocked}
+                          />
+
+                          {/* Название и очки */}
+                          <div className="text-center space-y-1 xl:space-y-1.5 w-full">
+                            <div
+                              style={{ fontFamily: 'UnifontExMono, monospace' }}
+                              className={`text-[13px] xl:text-[17px] leading-tight truncate ${
+                                isUnlocked ? 'text-[#FFF886]' : 'text-[#FDFCEA]/75'
                               }`}
                             >
                               {ach.title}
-                            </span>
-                            <span className="shrink-0 text-[11px] px-2.5 py-0.5 rounded-full border border-[#DDD2FD]/50 text-[#DDD2FD]">
-                              {ach.type === 'unique' ? 'Уникальное' : 'Многоразовое'}
-                            </span>
+                            </div>
+                            <div
+                              style={{ fontFamily: 'UnifontExMono, monospace' }}
+                              className="text-[11px] xl:text-[14px] text-[#FDFCEA]/65 leading-none"
+                            >
+                              {ach.points} очков
+                            </div>
                           </div>
-                          <p className="text-[13px] text-[#FDFCEA]/80 leading-snug">
-                            {ach.condition}
-                          </p>
                         </div>
-
-                        <div className="pt-2 border-t border-[#FDFCEA]/15 flex items-center justify-between text-[13px]">
-                          <span
-                            style={{ fontFamily: 'UnifontExMono, monospace' }}
-                            className="text-[#FFF886]"
-                          >
-                            +{ach.points} очков
-                          </span>
-                          <span className="text-[#FDFCEA]/75">
-                            {isUnlocked
-                              ? ach.type === 'repeatable'
-                                ? `Получено: ${ach.unlockedCount}× (${ach.points * ach.unlockedCount} очк.)`
-                                : 'Получено'
-                              : 'Не получено'}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                </section>
               </div>
             )}
           </div>
         </div>
       </main>
 
-      {/* МОДАЛКА КАДРИРОВАНИЯ АВАТАРКИ (КВАДРАТ С КРУГЛОЙ РАМКОЙ) */}
+      {/* МОДАЛКА КАДРИРОВАНИЯ АВАТАРКИ */}
       {rawImageToCrop && (
         <AvatarCropModal
           imageSrc={rawImageToCrop}
@@ -1144,7 +1247,7 @@ export const ProfilePage: React.FC = () => {
         />
       )}
 
-      {/* МОДАЛКА ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ ПРОФИЛЯ (ЧТЗ 2.2.2) */}
+      {/* МОДАЛКА ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ ПРОФИЛЯ */}
       {isDeleteModalOpen && (
         <div
           className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4"
@@ -1197,7 +1300,7 @@ export const ProfilePage: React.FC = () => {
         </div>
       )}
 
-      {/* МОДАЛКА ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ ИЗ ИЗБРАННОГО (ЧТЗ 2.2.1) */}
+      {/* МОДАЛКА ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ ИЗ ИЗБРАННОГО */}
       {mapToRemoveId && (
         <div
           className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4"

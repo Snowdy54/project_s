@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { MySkillKeysHero } from '../../components/home/MySkillKeysHero';
 
 export const HomePage: React.FC = () => {
   // Функция плавного скролла страницы наверх
@@ -7,7 +8,7 @@ export const HomePage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Данные для 4 карточек-папок преимуществ (оранжевая + синяя вверху, фиолетовая + жёлтая внизу)
+  // Данные для 4 карточек-папок преимуществ
   const folderCards = [
     {
       id: 1,
@@ -84,32 +85,22 @@ export const HomePage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#071018] text-white selection:bg-[#FFF886] selection:text-black">
+    <div className="min-h-screen bg-[#05131C] text-white selection:bg-[#FFF886] selection:text-black">
       {/* Главный контейнер */}
       <main className="w-full px-6 lg:px-[90px] space-y-24 pt-8 pb-20">
 
         {/* 1. HERO СЕКЦИЯ */}
         <section className="flex flex-col lg:flex-row items-center justify-between gap-10 lg:gap-14">
-          <div className="flex-1 max-w-[760px] space-y-8">
-            <h1 className="font-pixel text-4xl sm:text-5xl lg:text-[62px] xl:text-[66px] leading-[1.28] text-white">
-              От первого{' '}
-              <span className="inline-flex items-center justify-center bg-[#FFF886] text-black px-7 md:px-9 h-[52px] md:h-[62px] rounded-full align-middle mx-1">
-                <span className="-translate-y-[4px] md:-translate-y-[6px] leading-none">
-                  узла
-                </span>
-              </span>{' '}
-              <br className="hidden sm:inline" />
-              до подписанного{' '}
-              <span className="inline-flex items-center justify-center bg-[#FFF886] text-black px-7 md:px-9 h-[52px] md:h-[62px] rounded-full align-middle mx-1">
-                <span className="-translate-y-[4px] md:-translate-y-[6px] leading-none">
-                  оффера
-                </span>
-              </span>
+          <div className="flex-1 max-w-[660px] space-y-7">
+            <h1 className="font-pixel text-4xl sm:text-5xl lg:text-[58px] xl:text-[62px] leading-[1.2] text-[#FDFCEA]">
+              От первого узла
+              <br />
+              до принятого оффера
             </h1>
 
-            <p className="text-gray-300 text-base md:text-xl leading-relaxed font-normal max-w-[680px]">
-              Загрузи свои достижения, а наш ИИ построит интерактивное дерево компетенций, 
-              найдет скрытые пробелы и подберет курсы, проекты или стажировки именно под твой текущий уровень.
+            <p className="text-[#FDFCEA]/85 text-base md:text-[18px] leading-relaxed font-normal max-w-[560px]">
+              Загрузи свои достижения — наш ИИ построит интерактивное дерево компетенций,
+              найдёт пробелы и подберёт курсы под твой уровень.
             </p>
 
             <div className="pt-2">
@@ -117,10 +108,10 @@ export const HomePage: React.FC = () => {
                 to="/roadmap"
                 className="inline-flex items-center group cursor-pointer"
               >
-                <span className="bg-[#FFF886] group-hover:bg-[#F5EE7A] text-black text-sm md:text-base font-normal h-[54px] px-9 rounded-full flex items-center transition shadow-lg">
+                <span className="bg-[#FF7116] text-[#FDFCEA] text-sm md:text-base font-medium h-[54px] px-9 rounded-full flex items-center shadow-[0_0_10px_#FF7116] group-hover:shadow-[0_0_18px_#FF7116] group-hover:brightness-105 transition-all duration-200">
                   Построить свою интерактивную карту
                 </span>
-                <span className="w-[54px] h-[54px] rounded-full bg-[#FFF886] group-hover:bg-[#F5EE7A] text-black flex items-center justify-center transition shadow-lg -ml-[1px]">
+                <span className="w-[54px] h-[54px] rounded-full bg-[#FF7116] text-[#FDFCEA] flex items-center justify-center shadow-[0_0_10px_#FF7116] group-hover:shadow-[0_0_18px_#FF7116] group-hover:brightness-105 transition-all duration-200 -ml-[1px]">
                   <svg
                     width="34"
                     height="34"
@@ -128,51 +119,29 @@ export const HomePage: React.FC = () => {
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
                   >
-                    <rect width="2" height="16" transform="matrix(0.707107 0.707107 0.707107 -0.707107 10.6066 21.9203)" fill="black"/>
-                    <rect width="2" height="2" transform="matrix(0.707107 0.707107 0.707107 -0.707107 20.5061 14.8492)" fill="black"/>
-                    <rect width="2" height="2" transform="matrix(0.707107 0.707107 0.707107 -0.707107 20.5061 17.6777)" fill="black"/>
-                    <rect width="2" height="2" transform="matrix(0.707107 0.707107 0.707107 -0.707107 20.5061 20.5061)" fill="black"/>
-                    <rect x="19.0919" y="13.4351" width="2" height="2" transform="rotate(-135 19.0919 13.4351)" fill="black"/>
-                    <rect x="20.5061" y="17.6777" width="8" height="2" transform="rotate(-135 20.5061 17.6777)" fill="black"/>
-                    <rect x="20.5061" y="20.5061" width="12" height="2" transform="rotate(-135 20.5061 20.5061)" fill="black"/>
+                    <rect width="2" height="16" transform="matrix(0.707107 0.707107 0.707107 -0.707107 10.6066 21.9203)" fill="#FDFCEA"/>
+                    <rect width="2" height="2" transform="matrix(0.707107 0.707107 0.707107 -0.707107 20.5061 14.8492)" fill="#FDFCEA"/>
+                    <rect width="2" height="2" transform="matrix(0.707107 0.707107 0.707107 -0.707107 20.5061 17.6777)" fill="#FDFCEA"/>
+                    <rect width="2" height="2" transform="matrix(0.707107 0.707107 0.707107 -0.707107 20.5061 20.5061)" fill="#FDFCEA"/>
+                    <rect x="19.0919" y="13.4351" width="2" height="2" transform="rotate(-135 19.0919 13.4351)" fill="#FDFCEA"/>
+                    <rect x="20.5061" y="17.6777" width="8" height="2" transform="rotate(-135 20.5061 17.6777)" fill="#FDFCEA"/>
+                    <rect x="20.5061" y="20.5061" width="12" height="2" transform="rotate(-135 20.5061 20.5061)" fill="#FDFCEA"/>
                   </svg>
                 </span>
               </Link>
             </div>
           </div>
 
-          <div className="w-full max-w-[520px] xl:max-w-[580px] h-[395px] xl:h-[438px] relative shrink-0">
-            <svg
-              viewBox="0 0 455 344"
-              className="w-full h-full drop-shadow-2xl overflow-visible"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <mask id="hero-cutout" maskUnits="userSpaceOnUse" x="-100" y="-100" width="700" height="500">
-                <rect x="-100" y="-100" width="700" height="500" fill="white" />
-                <rect x="378" y="-29" width="153" height="58" rx="29" fill="black" />
-              </mask>
-              <rect
-                width="455"
-                height="344"
-                rx="36"
-                fill="#FFF886"
-                mask="url(#hero-cutout)"
-              />
-            </svg>
-
-            <div className="absolute top-[2px] right-[20px] xl:right-[24px] flex items-center gap-3.5 pointer-events-none">
-              <span className="w-4 h-4 rounded-full bg-[#FFF886]" />
-              <span className="w-4 h-4 rounded-full border-[2.5px] border-[#FFF886]" />
-            </div>
+          {/* Правая часть: композиция клавиш MY SKILL → */}
+          <div className="flex items-center justify-center lg:justify-end shrink-0 py-2">
+            <MySkillKeysHero />
           </div>
         </section>
 
-        {/* 2. ЧЕТЫРЕ КАРТОЧКИ-ПАПКИ ПРЕИМУЩЕСТВ (Пропорции 310x204 строго соблюдены) */}
+        {/* 2. ЧЕТЫРЕ КАРТОЧКИ-ПАПКИ ПРЕИМУЩЕСТВ */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start pt-4">
           {folderCards.map((card) => (
             <div key={card.id} className={`w-full relative ${card.marginTop} pt-[18px]`}>
-              
               {/* Язычок папки сзади */}
               <svg
                 className="absolute top-0 left-0 w-full h-[58px] pointer-events-none overflow-visible"
@@ -186,7 +155,7 @@ export const HomePage: React.FC = () => {
                 />
               </svg>
 
-              {/* Тело папки: высота пропорциональна ширине (aspect-[310/188]) */}
+              {/* Тело папки */}
               <div
                 className={`relative w-full aspect-[310/188] min-h-[255px] xl:min-h-[275px] rounded-[30px] xl:rounded-[34px] p-7 xl:p-8 flex flex-col justify-between overflow-hidden shadow-xl ${card.bg} ${card.text}`}
               >
@@ -345,10 +314,8 @@ export const HomePage: React.FC = () => {
 
         {/* 5. НИЖНИЙ ПРОМО-БАННЕР */}
         <section className="relative flex flex-col lg:flex-row items-stretch gap-6 h-auto lg:h-[530px] xl:h-[550px]">
-          
           {/* Левая оранжевая карточка */}
           <div className="w-full lg:w-[460px] xl:w-[480px] shrink-0 bg-[#FF7116] text-white rounded-[36px] xl:rounded-[40px] p-8 lg:p-12 flex flex-col justify-between shadow-xl relative overflow-hidden z-10">
-            
             {/* SVG 1: Верхняя линия карты */}
             <svg
               className="absolute top-0 left-0 pointer-events-none overflow-visible"
@@ -471,7 +438,6 @@ export const HomePage: React.FC = () => {
                 stroke="#FFF886"
               />
             </svg>
-
           </div>
         </section>
 
@@ -480,19 +446,18 @@ export const HomePage: React.FC = () => {
       {/* 6. ФУТЕР */}
       <footer className="w-full px-6 lg:px-[90px] pb-10">
         <div className="w-full bg-[#252D33] rounded-[36px] px-8 lg:px-14 py-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
-          
-          {/* Левая часть: логотип и контакты с точными цветами */}
+          {/* Левая часть: логотип и контакты */}
           <div className="space-y-2 text-center md:text-left">
             <span className="font-pixel text-2xl lg:text-[28px] text-[#FDFCEA] tracking-wide block">
-              SkillMap
+              MySkill
             </span>
             <p className="text-[#DDD2FD] text-sm font-normal">
               Напишите нам:{' '}
               <a
-                href="mailto:roadmaps@skillmap.com"
+                href="mailto:roadmaps@myskill.com"
                 className="text-[#DDD2FD] hover:underline transition-colors decoration-[#DDD2FD]/50 underline-offset-4"
               >
-                roadmaps@skillmap.com
+                roadmaps@myskill.com
               </a>
             </p>
           </div>
@@ -533,10 +498,9 @@ export const HomePage: React.FC = () => {
             </button>
 
             <span className="text-gray-400 text-xs font-normal">
-              © 2026 SkillMap. Все права защищены.
+              © 2026 MySkill. Все права защищены.
             </span>
           </div>
-
         </div>
       </footer>
     </div>

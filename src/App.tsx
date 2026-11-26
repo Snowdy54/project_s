@@ -5,6 +5,8 @@ import { RoadmapPage } from './pages/Roadmap';
 import { ProjectsPage } from './pages/Projects';
 import { ProjectDetailPage } from './pages/Projects/ProjectDetail';
 import { ProfilePage } from './pages/Profile';
+import { LoginPage } from './pages/Auth/LoginPage';
+import { RegisterPage } from './pages/Auth/RegisterPage';
 
 function App() {
   return (
@@ -19,6 +21,8 @@ function App() {
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route path="*" element={<Navigate to="/roadmap" replace />} />
         </Routes>
       </div>

@@ -11,7 +11,7 @@ export const Footer: React.FC = () => {
         {/* Левая часть: логотип и контакты с точными цветами */}
         <div className="space-y-2 text-center md:text-left">
           <span className="font-pixel text-2xl lg:text-[28px] text-[#FDFCEA] tracking-wide block">
-            SkillMap
+            MySkill
           </span>
           <p className="text-[#DDD2FD] text-sm font-normal">
             Напишите нам:{' '}
@@ -19,7 +19,7 @@ export const Footer: React.FC = () => {
               href="mailto:roadmaps@skillmap.com"
               className="text-[#DDD2FD] hover:underline transition-colors decoration-[#DDD2FD]/50 underline-offset-4"
             >
-              roadmaps@skillmap.com
+              roadmaps@myskill.com
             </a>
           </p>
         </div>
@@ -61,7 +61,7 @@ export const Footer: React.FC = () => {
           </button>
 
           <span className="text-gray-400 text-xs font-normal">
-            © 2026 SkillMap. Все права защищены.
+            © 2026 MySkill. Все права защищены.
           </span>
         </div>
       </div>
