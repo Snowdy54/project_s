@@ -41,14 +41,28 @@ describe('Storage Utility', () => {
     expect(getStorageItem('key_to_remove', null)).toBeNull();
   });
 
-  it('dispatches skillmap-storage-sync event on set and remove', () => {
+  it('dispatches sync and auth-changed events on set and remove', () => {
     const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
 
-    setStorageItem(STORAGE_KEYS.AUTH, true);
-    expect(dispatchSpy).toHaveBeenCalled();
+    setStorageItem(STORAGE_KEYS.PROFILE, { nickname: 'Test' });
+    expect(dispatchSpy).toHaveBeenCalledTimes(1);
+    expect(dispatchSpy.mock.calls[0][0].type).toBe('skillmap-storage-sync');
 
+    dispatchSpy.mockClear();
+    setStorageItem(STORAGE_KEYS.AUTH, true);
+    expect(dispatchSpy).toHaveBeenCalledTimes(2);
+    expect(dispatchSpy.mock.calls.map((c) => c[0].type)).toEqual([
+      'skillmap-storage-sync',
+      'auth-changed',
+    ]);
+
+    dispatchSpy.mockClear();
     removeStorageItem(STORAGE_KEYS.AUTH);
     expect(dispatchSpy).toHaveBeenCalledTimes(2);
+    expect(dispatchSpy.mock.calls.map((c) => c[0].type)).toEqual([
+      'skillmap-storage-sync',
+      'auth-changed',
+    ]);
   });
 
   it('does not throw when localStorage throws QuotaExceededError', () => {

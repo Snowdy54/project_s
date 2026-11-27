@@ -1,5 +1,41 @@
 import React from 'react';
 
+// Пиксельная корзина для удаления карты из избранного (сетка 10x10 из Figma)
+export const PixelTrashIcon: React.FC = () => (
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 10 10"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    shapeRendering="crispEdges"
+    className="shrink-0"
+  >
+    <path
+      d="M3 0H7V1H3ZM2 1H3V2H2ZM7 1H8V2H7ZM0 2H10V3H0ZM1 3H2V4H1ZM8 3H9V4H8ZM1 4H2V5H1ZM8 4H9V5H8ZM1 5H2V6H1ZM8 5H9V6H8ZM1 6H2V7H1ZM8 6H9V7H8ZM1 7H2V8H1ZM8 7H9V8H8ZM1 8H2V9H1ZM8 8H9V9H8ZM2 9H8V10H2Z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
+// Пиксельная стрелка '>' для перехода к карте (сетка 4x7 из Figma)
+export const PixelCardChevronRightIcon: React.FC = () => (
+  <svg
+    width="8"
+    height="14"
+    viewBox="0 0 4 7"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    shapeRendering="crispEdges"
+    className="shrink-0"
+  >
+    <path
+      d="M0 0H1V1H0ZM1 1H2V2H1ZM2 2H3V3H2ZM3 3H4V4H3ZM2 4H3V5H2ZM1 5H2V6H1ZM0 6H1V7H0Z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
 // Пиксельная иконка пользователя внутри пустой жёлтой аватарки (сетка 12x12 из Figma)
 export const PixelEmptyAvatarUserIcon: React.FC<{ size?: number }> = ({ size = 50 }) => (
   <svg
@@ -36,7 +72,7 @@ export const PixelVerifiedCheckIcon: React.FC = () => (
   </svg>
 );
 
-// Иконка Профиль (точная копия из Figma, 20x20)
+// Иконка Профиль (20x20)
 export const PixelSidebarProfileIcon: React.FC = () => (
   <svg
     width="20"
@@ -64,7 +100,7 @@ export const PixelSidebarProfileIcon: React.FC = () => (
   </svg>
 );
 
-// Иконка Активность (точная копия из Figma, 20x20)
+// Иконка Активность (20x20)
 export const PixelSidebarBoltIcon: React.FC = () => (
   <svg
     width="20"
@@ -81,7 +117,7 @@ export const PixelSidebarBoltIcon: React.FC = () => (
   </svg>
 );
 
-// Иконка Достижения (точная копия из Figma, 20x20)
+// Иконка Достижения (20x20)
 export const PixelSidebarTrophyIcon: React.FC = () => (
   <svg
     width="20"
@@ -124,7 +160,7 @@ export const PixelMenuChevronRight: React.FC = () => (
   </svg>
 );
 
-// Иконка Выйти (точная копия из Figma, 16x16)
+// Иконка Выйти (16x16)
 export const PixelLogoutIcon: React.FC = () => (
   <svg
     width="16"
@@ -146,7 +182,7 @@ export const PixelLogoutIcon: React.FC = () => (
   </svg>
 );
 
-// Иконка GitHub (точная копия из Figma, 25x25)
+// Иконка GitHub (25x25)
 export const PixelGitHubIcon: React.FC = () => (
   <svg
     width="25"
@@ -163,7 +199,7 @@ export const PixelGitHubIcon: React.FC = () => (
   </svg>
 );
 
-// Иконка Telegram (точная копия из Figma, 25x25)
+// Иконка Telegram (25x25)
 export const PixelTelegramIcon: React.FC = () => (
   <svg
     width="25"
@@ -180,7 +216,7 @@ export const PixelTelegramIcon: React.FC = () => (
   </svg>
 );
 
-// Иконка VK (точная копия из Figma, 30x30)
+// Иконка VK (30x30)
 export const PixelVKIcon: React.FC = () => (
   <svg
     width="30"
@@ -216,7 +252,7 @@ export const PixelVKIcon: React.FC = () => (
   </svg>
 );
 
-// Иконка Website (точная копия из Figma, 25x25)
+// Иконка Website (25x25)
 export const PixelWebsiteIcon: React.FC = () => (
   <svg
     width="25"
