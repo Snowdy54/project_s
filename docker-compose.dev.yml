@@ -16,14 +16,14 @@ services:
     networks:
       - app-network
 
-  # backend:
-  #   build:
-  #     context: ./backend
-  #   container_name: project_s-backend-dev
-  #   ports:
-  #     - "8000:8000"
-  #   networks:
-  #     - app-network
+  backend:
+     build:
+       context: ./backend
+     container_name: project_s-backend-dev
+     ports:
+       - "8000:8000"
+     networks:
+       - app-network
 
 networks:
   app-network:
