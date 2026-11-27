@@ -7,6 +7,7 @@ import { ProjectDetailPage } from './pages/Projects/ProjectDetail';
 import { ProfilePage } from './pages/Profile';
 import { LoginPage } from './pages/Auth/LoginPage';
 import { RegisterPage } from './pages/Auth/RegisterPage';
+import { AboutPage } from './pages/About';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="*" element={<Navigate to="/roadmap" replace />} />
         </Routes>
       </div>

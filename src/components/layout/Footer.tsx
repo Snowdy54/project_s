@@ -16,7 +16,7 @@ export const Footer: React.FC = () => {
           <p className="text-[#DDD2FD] text-sm font-normal">
             Напишите нам:{' '}
             <a
-              href="mailto:roadmaps@skillmap.com"
+              href="mailto:roadmaps@myskill.com"
               className="text-[#DDD2FD] hover:underline transition-colors decoration-[#DDD2FD]/50 underline-offset-4"
             >
               roadmaps@myskill.com

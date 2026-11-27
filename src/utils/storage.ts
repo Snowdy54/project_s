@@ -1,9 +1,16 @@
 export const STORAGE_KEYS = {
   AUTH: 'skillmap_user_auth_v1',
   PROFILE: 'skillmap_user_profile_v2',
-  FAVORITES: 'skillmap_user_favorites_v1',
+  FAVORITES: 'skillmap_user_favorites_v2',
   ROADMAP_NODES: 'skillmap_frontend_nodes_v3',
 } as const;
+
+function notifyStorageSync(key: string): void {
+  window.dispatchEvent(new Event('skillmap-storage-sync'));
+  if (key === STORAGE_KEYS.AUTH) {
+    window.dispatchEvent(new Event('auth-changed'));
+  }
+}
 
 /**
  * Безопасное чтение и парсинг данных из localStorage
@@ -27,8 +34,7 @@ export function setStorageItem<T>(key: string, value: T): boolean {
   try {
     const serialized = JSON.stringify(value);
     window.localStorage.setItem(key, serialized);
-    // Оповещение подписчиков о локальном изменении
-    window.dispatchEvent(new Event('skillmap-storage-sync'));
+    notifyStorageSync(key);
     return true;
   } catch {
     // Безопасный перехват QuotaExceededError и приватных режимов
@@ -43,7 +49,7 @@ export function removeStorageItem(key: string): boolean {
   if (typeof window === 'undefined') return false;
   try {
     window.localStorage.removeItem(key);
-    window.dispatchEvent(new Event('skillmap-storage-sync'));
+    notifyStorageSync(key);
     return true;
   } catch {
     return false;

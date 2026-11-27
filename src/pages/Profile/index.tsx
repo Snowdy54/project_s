@@ -12,8 +12,6 @@ import {
   achievementsCatalog,
 } from '../../data/achievementsData';
 import {
-  PixelTrashIcon,
-  PixelCardChevronRightIcon,
   PixelEmptyAvatarUserIcon,
   PixelVerifiedCheckIcon,
   PixelSidebarProfileIcon,
@@ -26,144 +24,59 @@ import {
   PixelTelegramIcon,
   PixelWebsiteIcon,
 } from '../../components/profile/ProfileIcons';
+import { ActivityRoadmapCard } from '../../components/profile/ActivityRoadmapCard';
+import {
+  DeleteProfileModal,
+  RemoveFavoriteModal,
+} from '../../components/profile/ProfileModals';
 import { AvatarCropModal } from '../../components/profile/AvatarCropModal';
 import { Footer } from '../../components/layout/Footer';
 import { AchievementCircleBadge } from '../../components/profile/AchievementIcons';
+import {
+  STORAGE_KEYS,
+  getStorageItem,
+  setStorageItem,
+  removeStorageItem,
+} from '../../utils/storage';
+import {
+  isValidEmail,
+  isValidPhone,
+  hasForbiddenQuotes,
+} from '../../utils/validation';
 
 type ProfileTab = 'profile' | 'activity' | 'achievements';
-type AuthMode = 'login' | 'register' | 'forgot';
-
-const STORAGE_PROFILE_KEY = 'skillmap_user_profile_v2';
-const STORAGE_AUTH_KEY = 'skillmap_user_auth_v1';
-const STORAGE_FAVORITES_KEY = 'skillmap_user_favorites_v2';
-
-const isValidEmail = (value: string) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-
-const isValidPhone = (value: string) =>
-  value.replace(/\D/g, '').length >= 10;
-
-interface ActivityRoadmapCardProps {
-  map: UserRoadmapProgress;
-  variant: 'favorite' | 'started';
-  onOpen: (path: string) => void;
-  onRequestRemove?: (id: string) => void;
-}
-
-const ActivityRoadmapCard: React.FC<ActivityRoadmapCardProps> = ({
-  map,
-  variant,
-  onOpen,
-  onRequestRemove,
-}) => {
-  const isCompleted = map.progress >= 100;
-  const accentColor = isCompleted ? '#FF7116' : '#99C3FD';
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onOpen(map.path)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onOpen(map.path);
-        }
-      }}
-      style={{
-        borderColor: accentColor,
-      }}
-      className={`w-full min-h-[98px] rounded-[20px] border bg-[#FDFCEA0D] px-6 sm:px-[40px] py-[20px] flex items-center justify-between gap-6 sm:gap-[57px] cursor-pointer transition-all duration-200 ${
-        isCompleted
-          ? 'hover:shadow-[0_0_12px_rgba(255,113,22,0.45)]'
-          : 'hover:shadow-[0_0_12px_rgba(153,195,253,0.45)]'
-      }`}
-    >
-      {/* Левая часть: название + процент + шкала прогресса */}
-      <div className="flex-1 min-w-0 space-y-3">
-        <div className="flex items-center justify-between gap-4">
-          <span
-            style={{ fontFamily: 'Product Sans, sans-serif' }}
-            className="text-[19px] sm:text-[22px] font-medium text-[#FDFCEA] leading-tight truncate"
-          >
-            {map.title}
-          </span>
-          <span
-            style={{ fontFamily: 'UnifontExMono, monospace' }}
-            className="text-[16px] sm:text-[18px] text-[#FDFCEA] shrink-0"
-          >
-            {map.progress}%
-          </span>
-        </div>
-
-        {/* Шкала прогресса (подложка #FDFCEA, заполнение #99C3FD или #FF7116) */}
-        <div className="w-full h-[14px] rounded-full bg-[#FDFCEA] border border-[#FDFCEA] overflow-hidden">
-          <div
-            style={{
-              width: `${Math.min(100, Math.max(0, map.progress))}%`,
-              backgroundColor: accentColor,
-            }}
-            className="h-full rounded-full transition-all duration-300"
-          />
-        </div>
-      </div>
-
-      {/* Правая круглая кнопка 36x36: корзина для избранных или '>' для начатых */}
-      {variant === 'favorite' ? (
-        <button
-          type="button"
-          title="Удалить из избранного"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRequestRemove?.(map.id);
-          }}
-          style={{ backgroundColor: accentColor }}
-          className="w-[36px] h-[36px] rounded-full border-2 border-[#FDFCEA] text-[#05131C] flex items-center justify-center shrink-0 hover:scale-105 transition-transform cursor-pointer"
-        >
-          <PixelTrashIcon />
-        </button>
-      ) : (
-        <span
-          style={{ backgroundColor: accentColor }}
-          className="w-[36px] h-[36px] rounded-full border-2 border-[#FDFCEA] text-[#05131C] flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
-        >
-          <PixelCardChevronRightIcon />
-        </span>
-      )}
-    </div>
-  );
-};
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
 
   // Авторизация пользователя
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(() => {
-    const saved = localStorage.getItem(STORAGE_AUTH_KEY);
-    return saved !== null ? JSON.parse(saved) : true;
-  });
-  const [authMode, setAuthMode] = useState<AuthMode>('login');
-  const [authName, setAuthName] = useState('');
-  const [authContact, setAuthContact] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [authMessage, setAuthMessage] = useState<{
-    type: 'error' | 'success';
-    text: string;
-  } | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(() =>
+    getStorageItem(STORAGE_KEYS.AUTH, true)
+  );
 
   // По дефолту при нажатии в хедере кнопки ЛК пользователь попадает в раздел «Активность»
   const [activeTab, setActiveTab] = useState<ProfileTab>('activity');
 
   // Сохранённый и редактируемый профиль
-  const [savedProfile, setSavedProfile] = useState<UserProfileData>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_PROFILE_KEY);
-      return raw ? JSON.parse(raw) : defaultUserProfile;
-    } catch {
-      return defaultUserProfile;
-    }
-  });
+  const [savedProfile, setSavedProfile] = useState<UserProfileData>(() =>
+    getStorageItem<UserProfileData>(STORAGE_KEYS.PROFILE, defaultUserProfile)
+  );
   const [formProfile, setFormProfile] = useState<UserProfileData>(savedProfile);
+
+  // Синхронизация статуса авторизации между вкладками и модалками
+  useEffect(() => {
+    const syncAuth = () => {
+      setIsAuthorized(getStorageItem(STORAGE_KEYS.AUTH, true));
+    };
+    window.addEventListener('skillmap-storage-sync', syncAuth);
+    window.addEventListener('auth-changed', syncAuth);
+    window.addEventListener('storage', syncAuth);
+    return () => {
+      window.removeEventListener('skillmap-storage-sync', syncAuth);
+      window.removeEventListener('auth-changed', syncAuth);
+      window.removeEventListener('storage', syncAuth);
+    };
+  }, []);
 
   // Выбор и обрезка аватарки из галереи
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -192,14 +105,9 @@ export const ProfilePage: React.FC = () => {
 
   // Активность: начатые («Ваши карты») и избранные («Избранные карты»)
   const [startedMaps] = useState<UserRoadmapProgress[]>(initialStartedMaps);
-  const [favoriteMaps, setFavoriteMaps] = useState<UserRoadmapProgress[]>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_FAVORITES_KEY);
-      return raw ? JSON.parse(raw) : initialFavoriteMaps;
-    } catch {
-      return initialFavoriteMaps;
-    }
-  });
+  const [favoriteMaps, setFavoriteMaps] = useState<UserRoadmapProgress[]>(() =>
+    getStorageItem<UserRoadmapProgress[]>(STORAGE_KEYS.FAVORITES, initialFavoriteMaps)
+  );
   const [mapToRemoveId, setMapToRemoveId] = useState<string | null>(null);
 
   // Достижения
@@ -250,9 +158,13 @@ export const ProfilePage: React.FC = () => {
   const handleSaveCroppedAvatar = (croppedDataUrl: string) => {
     const updatedSaved = { ...savedProfile, avatarUrl: croppedDataUrl };
     const updatedForm = { ...formProfile, avatarUrl: croppedDataUrl };
+    if (!setStorageItem(STORAGE_KEYS.PROFILE, updatedSaved)) {
+      setFormError('Не удалось сохранить изображение: превышен лимит памяти хранилища.');
+      setRawImageToCrop(null);
+      return;
+    }
     setSavedProfile(updatedSaved);
     setFormProfile(updatedForm);
-    localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(updatedSaved));
     setRawImageToCrop(null);
   };
 
@@ -262,7 +174,7 @@ export const ProfilePage: React.FC = () => {
     const updatedForm = { ...formProfile, avatarUrl: '' };
     setSavedProfile(updatedSaved);
     setFormProfile(updatedForm);
-    localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(updatedSaved));
+    setStorageItem(STORAGE_KEYS.PROFILE, updatedSaved);
   };
 
   const handleSaveProfile = (e: React.FormEvent) => {
@@ -274,7 +186,7 @@ export const ProfilePage: React.FC = () => {
       setFormError('Укажите никнейм пользователя.');
       return;
     }
-    if (/[«»”]/.test(trimmedNick)) {
+    if (hasForbiddenQuotes(trimmedNick)) {
       setFormError('Имя не должно содержать символы «, ”, »');
       return;
     }
@@ -294,9 +206,13 @@ export const ProfilePage: React.FC = () => {
       phone: formProfile.phone.trim(),
     };
 
+    if (!setStorageItem(STORAGE_KEYS.PROFILE, normalizedProfile)) {
+      setFormError('Не удалось сохранить изменения в локальное хранилище.');
+      return;
+    }
+
     setSavedProfile(normalizedProfile);
     setFormProfile(normalizedProfile);
-    localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(normalizedProfile));
 
     setIsSavedSuccess(true);
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -307,8 +223,7 @@ export const ProfilePage: React.FC = () => {
 
   const handleLogout = () => {
     setIsAuthorized(false);
-    localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(false));
-    window.dispatchEvent(new Event('auth-changed'));
+    setStorageItem(STORAGE_KEYS.AUTH, false);
     navigate('/login');
   };
 
@@ -318,21 +233,22 @@ export const ProfilePage: React.FC = () => {
       setDeleteError('Неверный ввод. Удаление аккаунта прервано.');
       return;
     }
-    localStorage.removeItem(STORAGE_PROFILE_KEY);
-    localStorage.removeItem(STORAGE_FAVORITES_KEY);
-    localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(false));
+    removeStorageItem(STORAGE_KEYS.PROFILE);
+    removeStorageItem(STORAGE_KEYS.FAVORITES);
+    setStorageItem(STORAGE_KEYS.AUTH, false);
     setSavedProfile(defaultUserProfile);
     setFormProfile(defaultUserProfile);
     setIsDeleteModalOpen(false);
     setDeleteConfirmWord('');
     setDeleteError(null);
     setIsAuthorized(false);
+    navigate('/login');
   };
 
   const handleRemoveFavorite = (id: string) => {
     const updated = favoriteMaps.filter((m) => m.id !== id);
     setFavoriteMaps(updated);
-    localStorage.setItem(STORAGE_FAVORITES_KEY, JSON.stringify(updated));
+    setStorageItem(STORAGE_KEYS.FAVORITES, updated);
     setMapToRemoveId(null);
   };
 
@@ -346,219 +262,8 @@ export const ProfilePage: React.FC = () => {
   const firstNameLine = nameParts[0] || 'Пользователь';
   const secondNameLine = nameParts.slice(1).join(' ');
 
-  const handleAuthSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthMessage(null);
-
-    if (authMode === 'forgot') {
-      if (!authContact.trim()) {
-        setAuthMessage({
-          type: 'error',
-          text: 'Пользователь с таким email/телефоном не найден.',
-        });
-        return;
-      }
-      setAuthMessage({
-        type: 'success',
-        text: 'Ссылка для сброса пароля отправлена на указанный адрес.',
-      });
-      return;
-    }
-
-    if (authMode === 'register') {
-      if (/[«»”]/.test(authName)) {
-        setAuthMessage({
-          type: 'error',
-          text: 'Не удалось зарегистрироваться из-за недопустимых символов в имени («, ”, »).',
-        });
-        return;
-      }
-      if (authPassword.length < 6) {
-        setAuthMessage({
-          type: 'error',
-          text: 'Не удалось зарегистрироваться: минимальная длина пароля 6 символов.',
-        });
-        return;
-      }
-      const nextProfile: UserProfileData = {
-        ...defaultUserProfile,
-        nickname: authName.trim() || defaultUserProfile.nickname,
-        email: authContact.includes('@') ? authContact.trim() : '',
-        phone: !authContact.includes('@') ? authContact.trim() : '',
-      };
-      setSavedProfile(nextProfile);
-      setFormProfile(nextProfile);
-      localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(nextProfile));
-    }
-
-    setIsAuthorized(true);
-    localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(true));
-  };
-
-  if (!isAuthorized) {
-    const isFormReady =
-      authMode === 'forgot'
-        ? authContact.trim().length > 0
-        : authMode === 'login'
-          ? authContact.trim().length > 0 && authPassword.length > 0
-          : authName.trim().length > 0 &&
-            authContact.trim().length > 0 &&
-            authPassword.length > 0;
-
   if (!isAuthorized) {
     return <Navigate to="/login" replace />;
-  }
-      
-    return (
-      <div className="min-h-[calc(100vh-88px)] bg-[#05131C] text-[#FFFFFF] flex flex-col justify-between">
-        <main className="w-full px-6 lg:px-[90px] py-12 flex items-center justify-center flex-1">
-          <div className="w-full max-w-[440px] rounded-[20px] border-2 border-[#FFF886] bg-[#05131C] p-8 shadow-[0_0_16px_rgba(255,248,134,0.25)] space-y-6">
-            <div className="text-center space-y-1.5">
-              <h1
-                style={{ fontFamily: 'UnifontExMono, monospace' }}
-                className="text-[28px] text-[#FFF886]"
-              >
-                {authMode === 'login' && 'Вход в аккаунт'}
-                {authMode === 'register' && 'Регистрация'}
-                {authMode === 'forgot' && 'Восстановление пароля'}
-              </h1>
-              <p className="text-[13.5px] text-[#FDFCEA]/75">
-                Войдите в личный кабинет или зарегистрируйтесь для сохранения прогресса
-              </p>
-            </div>
-
-            {authMessage && (
-              <div
-                className={`px-4 py-3 rounded-[12px] border text-[13px] ${
-                  authMessage.type === 'error'
-                    ? 'border-[#FF383C] bg-[#FF383C]/10 text-[#FDFCEA]'
-                    : 'border-[#FFF886] bg-[#FFF886]/10 text-[#FFF886]'
-                }`}
-              >
-                {authMessage.text}
-              </div>
-            )}
-
-            <form onSubmit={handleAuthSubmit} className="space-y-4">
-              {authMode === 'register' && (
-                <div className="space-y-1.5">
-                  <label className="block text-[14px] text-[#FFFFFF]">Имя</label>
-                  <input
-                    type="text"
-                    value={authName}
-                    onChange={(e) => setAuthName(e.target.value)}
-                    placeholder="Александр Скиллмапов"
-                    className="w-full h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] px-4 text-[14px] text-[#FDFCEA]/55 focus:text-[#FDFCEA] focus:shadow-[0_0_5px_#FDFCEA] focus:outline-none transition"
-                  />
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <label className="block text-[14px] text-[#FFFFFF]">
-                  Email / телефон
-                </label>
-                <input
-                  type="text"
-                  value={authContact}
-                  onChange={(e) => setAuthContact(e.target.value)}
-                  placeholder="example@myskill.ru"
-                  className="w-full h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] px-4 text-[14px] text-[#FDFCEA]/55 focus:text-[#FDFCEA] focus:shadow-[0_0_5px_#FDFCEA] focus:outline-none transition"
-                />
-              </div>
-
-              {authMode !== 'forgot' && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-[14px] text-[#FFFFFF]">Пароль</label>
-                    {authMode === 'login' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAuthMode('forgot');
-                          setAuthMessage(null);
-                        }}
-                        className="text-[12.5px] text-[#DDD2FD] hover:underline cursor-pointer"
-                      >
-                        Забыли пароль?
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    type="password"
-                    value={authPassword}
-                    onChange={(e) => setAuthPassword(e.target.value)}
-                    placeholder="Минимум 6 символов"
-                    className="w-full h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] px-4 text-[14px] text-[#FDFCEA]/55 focus:text-[#FDFCEA] focus:shadow-[0_0_5px_#FDFCEA] focus:outline-none transition"
-                  />
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={!isFormReady}
-                className={`w-full h-[43px] rounded-[30px] bg-[#FFF886] text-[#05131C] font-medium text-[15px] transition ${
-                  isFormReady
-                    ? 'opacity-100 hover:shadow-[0_0_10px_#FFF886] cursor-pointer'
-                    : 'opacity-45 cursor-not-allowed'
-                }`}
-              >
-                {authMode === 'login' && 'Войти'}
-                {authMode === 'register' && 'Зарегистрироваться'}
-                {authMode === 'forgot' && 'Отправить ссылку'}
-              </button>
-            </form>
-
-            {authMode !== 'forgot' && (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsAuthorized(true);
-                  localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(true));
-                }}
-                className="w-full h-[43px] rounded-[10px] border border-[#FDFCEA] bg-[#FDFCEA0D] text-[#FDFCEA] text-[14px] flex items-center justify-center gap-2.5 hover:shadow-[0_0_5px_#FDFCEA] transition cursor-pointer"
-              >
-                <PixelGitHubIcon />
-                <span>
-                  {authMode === 'login'
-                    ? 'Войти через GitHub'
-                    : 'Зарегистрироваться через GitHub'}
-                </span>
-              </button>
-            )}
-
-            <div className="pt-2 text-center text-[13.5px] text-[#FDFCEA]/75">
-              {authMode === 'login' ? (
-                <>
-                  Нет аккаунта?{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthMode('register');
-                      setAuthMessage(null);
-                    }}
-                    className="text-[#FFF886] hover:underline cursor-pointer"
-                  >
-                    Зарегистрироваться
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMode('login');
-                    setAuthMessage(null);
-                  }}
-                  className="text-[#FFF886] hover:underline cursor-pointer"
-                >
-                  Вернуться ко входу
-                </button>
-              )}
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
   }
 
   return (
@@ -822,10 +527,14 @@ export const ProfilePage: React.FC = () => {
                       </h2>
 
                       <div className="space-y-1.5">
-                        <label className="block text-[14px] text-[#FFFFFF]">
+                        <label
+                          htmlFor="profile-nickname"
+                          className="block text-[14px] text-[#FFFFFF]"
+                        >
                           Никнейм*
                         </label>
                         <input
+                          id="profile-nickname"
                           type="text"
                           value={formProfile.nickname}
                           onFocus={() => setFocusedField('nickname')}
@@ -854,7 +563,10 @@ export const ProfilePage: React.FC = () => {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                           <div className="space-y-1.5">
-                            <label className="block text-[14px] text-[#FFFFFF]">
+                            <label
+                              htmlFor="profile-email"
+                              className="block text-[14px] text-[#FFFFFF]"
+                            >
                               Email
                             </label>
                             <div
@@ -867,6 +579,7 @@ export const ProfilePage: React.FC = () => {
                               }`}
                             >
                               <input
+                                id="profile-email"
                                 type="email"
                                 value={formProfile.email}
                                 onFocus={() => setFocusedField('email')}
@@ -895,7 +608,10 @@ export const ProfilePage: React.FC = () => {
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="block text-[14px] text-[#FFFFFF]">
+                            <label
+                              htmlFor="profile-phone"
+                              className="block text-[14px] text-[#FFFFFF]"
+                            >
                               Телефон
                             </label>
                             <div
@@ -908,6 +624,7 @@ export const ProfilePage: React.FC = () => {
                               }`}
                             >
                               <input
+                                id="profile-phone"
                                 type="tel"
                                 value={formProfile.phone}
                                 onFocus={() => setFocusedField('phone')}
@@ -1248,90 +965,21 @@ export const ProfilePage: React.FC = () => {
       )}
 
       {/* МОДАЛКА ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ ПРОФИЛЯ */}
-      {isDeleteModalOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4"
-          onClick={() => setIsDeleteModalOpen(false)}
-        >
-          <form
-            onSubmit={handleConfirmDeleteAccount}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-[440px] rounded-[20px] border-2 border-[#FF383C] bg-[#05131C] p-6 sm:p-7 space-y-4 shadow-2xl"
-          >
-            <h3
-              style={{ fontFamily: 'Product Sans Black, Product Sans, sans-serif' }}
-              className="text-[20px] font-black text-[#FDFCEA]"
-            >
-              Подтверждение удаления профиля
-            </h3>
-            <p className="text-[14px] text-[#FDFCEA]/85 leading-relaxed">
-              Для подтверждения безвозвратного удаления аккаунта введите слово{' '}
-              <span className="font-bold text-[#FF383C]">Удалить</span> в поле ниже:
-            </p>
-
-            {deleteError && (
-              <p className="text-[13px] text-[#FF383C] font-medium">{deleteError}</p>
-            )}
-
-            <input
-              type="text"
-              value={deleteConfirmWord}
-              onChange={(e) => setDeleteConfirmWord(e.target.value)}
-              placeholder="Удалить"
-              className="w-full h-[43px] rounded-[10px] border border-[#FF383C] bg-[#FDFCEA0D] px-4 text-[14.5px] text-[#FDFCEA] focus:outline-none"
-            />
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="h-[42px] px-5 rounded-[30px] border border-[#FDFCEA]/50 text-[#FDFCEA] text-[14px] hover:bg-white/5 transition cursor-pointer"
-              >
-                Отмена
-              </button>
-              <button
-                type="submit"
-                className="h-[42px] px-6 rounded-[30px] border border-[#FF383C] bg-[#FF383C] text-[#05131C] font-medium text-[14px] hover:brightness-110 transition cursor-pointer"
-              >
-                Подтвердить
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      <DeleteProfileModal
+        isOpen={isDeleteModalOpen}
+        confirmWord={deleteConfirmWord}
+        error={deleteError}
+        onChangeConfirmWord={setDeleteConfirmWord}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onSubmit={handleConfirmDeleteAccount}
+      />
 
       {/* МОДАЛКА ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ ИЗ ИЗБРАННОГО */}
-      {mapToRemoveId && (
-        <div
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4"
-          onClick={() => setMapToRemoveId(null)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-[420px] rounded-[20px] border-2 border-[#DDD2FD] bg-[#05131C] p-6 space-y-5 shadow-2xl"
-          >
-            <p className="text-[16px] text-[#FDFCEA] leading-snug">
-              Вы действительно хотите удалить карту из избранного?
-            </p>
-            <div className="flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setMapToRemoveId(null)}
-                className="h-[40px] px-6 rounded-[30px] border border-[#FDFCEA]/50 text-[#FDFCEA] text-[14px] hover:bg-white/5 transition cursor-pointer"
-              >
-                Нет
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRemoveFavorite(mapToRemoveId)}
-                className="h-[40px] px-6 rounded-[30px] bg-[#DDD2FD] text-[#05131C] font-medium text-[14px] hover:brightness-105 transition cursor-pointer"
-              >
-                Да
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <RemoveFavoriteModal
+        mapId={mapToRemoveId}
+        onCancel={() => setMapToRemoveId(null)}
+        onConfirm={handleRemoveFavorite}
+      />
 
       <Footer />
     </div>

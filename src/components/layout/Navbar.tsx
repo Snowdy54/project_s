@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { PixelLogoutIcon } from '../profile/ProfileIcons';
-
-const STORAGE_AUTH_KEY = 'skillmap_user_auth_v1';
+import { STORAGE_KEYS, getStorageItem } from '../../utils/storage';
 
 // Векторная иконка пользователя для авторизованного профиля
 const ProfileUserIcon: React.FC = () => (
@@ -23,29 +22,21 @@ export const Navbar: React.FC = () => {
   const location = useLocation();
   const currentPath = location.pathname;
 
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_AUTH_KEY);
-      return saved !== null ? JSON.parse(saved) : true;
-    } catch {
-      return true;
-    }
-  });
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(() =>
+    getStorageItem(STORAGE_KEYS.AUTH, true)
+  );
 
   useEffect(() => {
     const syncAuth = () => {
-      try {
-        const saved = localStorage.getItem(STORAGE_AUTH_KEY);
-        setIsAuthorized(saved !== null ? JSON.parse(saved) : true);
-      } catch {
-        setIsAuthorized(true);
-      }
+      setIsAuthorized(getStorageItem(STORAGE_KEYS.AUTH, true));
     };
 
     syncAuth();
+    window.addEventListener('skillmap-storage-sync', syncAuth);
     window.addEventListener('auth-changed', syncAuth);
     window.addEventListener('storage', syncAuth);
     return () => {
+      window.removeEventListener('skillmap-storage-sync', syncAuth);
       window.removeEventListener('auth-changed', syncAuth);
       window.removeEventListener('storage', syncAuth);
     };

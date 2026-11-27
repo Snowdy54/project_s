@@ -1,88 +1,85 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MySkillKeysHero } from '../../components/home/MySkillKeysHero';
+import { Footer } from '../../components/layout/Footer';
+
+// Данные для 4 карточек-папок преимуществ
+const folderCards = [
+  {
+    id: 1,
+    title: 'Синхронизируй\nопыт',
+    desc: 'Подключи GitHub, загрузи резюме или просто отметь пройденные курсы и учебные проекты',
+    bg: 'bg-[#FF7116]',
+    tabColor: '#D95B09',
+    text: 'text-white',
+    descText: 'text-white/95',
+    waveStroke: 'rgba(255, 255, 255, 0.22)',
+    marginTop: 'lg:mt-0',
+  },
+  {
+    id: 2,
+    title: 'Визуализируй\nкарту',
+    desc: 'ИИ превратит твои hard и soft skills в интерактивное «дерево» или «созвездие» компетенций',
+    bg: 'bg-[#DDD2FD]',
+    tabColor: '#BFAFF8',
+    text: 'text-black',
+    descText: 'text-black/85',
+    waveStroke: 'rgba(120, 80, 220, 0.18)',
+    marginTop: 'lg:mt-10',
+  },
+  {
+    id: 3,
+    title: 'Диагностируй\nпробелы',
+    desc: 'Система подсветит навыки, которые требуются для целевой должности, но ещё не прокачаны',
+    bg: 'bg-[#99C3FD]',
+    tabColor: '#76A8F5',
+    text: 'text-black',
+    descText: 'text-black/85',
+    waveStroke: 'rgba(40, 90, 200, 0.18)',
+    marginTop: 'lg:mt-0',
+  },
+  {
+    id: 4,
+    title: 'Персонализируй\nплан',
+    desc: 'Получи подборку: какие курсы пройти, в какой проект вступить или какую стажировку выбрать',
+    bg: 'bg-[#FFF886]',
+    tabColor: '#E5DE62',
+    text: 'text-black',
+    descText: 'text-black/85',
+    waveStroke: 'rgba(180, 160, 20, 0.22)',
+    marginTop: 'lg:mt-10',
+  },
+];
+
+// Данные для 4 карточек специальностей
+const specialtyCards = [
+  {
+    id: 1,
+    title: 'Data Scientist',
+    desc: 'Извлекай знания из данных\nи строй ML-модели',
+    icon: '/icons/data-scientist.png',
+  },
+  {
+    id: 2,
+    title: 'Frontend-разработчик',
+    desc: 'Воплощай дизайн в код: быстро,\nкрасиво, функционально',
+    icon: '/icons/frontend.png',
+  },
+  {
+    id: 3,
+    title: 'UX/UI-дизайнер',
+    desc: 'Создавай цифровые продукты,\nкоторыми приятно пользоваться',
+    icon: '/icons/ui-ux.png',
+  },
+  {
+    id: 4,
+    title: 'Product Manager',
+    desc: 'Соединяй бизнес, пользователей\nи команду разработки',
+    icon: '/icons/product-manager.png',
+  },
+];
 
 export const HomePage: React.FC = () => {
-  // Функция плавного скролла страницы наверх
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Данные для 4 карточек-папок преимуществ
-  const folderCards = [
-    {
-      id: 1,
-      title: 'Синхронизируй\nопыт',
-      desc: 'Подключи GitHub, загрузи резюме или просто отметь пройденные курсы и учебные проекты',
-      bg: 'bg-[#FF7116]',
-      tabColor: '#D95B09',
-      text: 'text-white',
-      descText: 'text-white/95',
-      waveStroke: 'rgba(255, 255, 255, 0.22)',
-      marginTop: 'lg:mt-0',
-    },
-    {
-      id: 2,
-      title: 'Визуализируй\nкарту',
-      desc: 'ИИ превратит твои hard и soft skills в интерактивное «дерево» или «созвездие» компетенций',
-      bg: 'bg-[#DDD2FD]',
-      tabColor: '#BFAFF8',
-      text: 'text-black',
-      descText: 'text-black/85',
-      waveStroke: 'rgba(120, 80, 220, 0.18)',
-      marginTop: 'lg:mt-10',
-    },
-    {
-      id: 3,
-      title: 'Диагностируй\nпробелы',
-      desc: 'Система подсветит навыки, которые требуются для целевой должности, но ещё не прокачаны',
-      bg: 'bg-[#99C3FD]',
-      tabColor: '#76A8F5',
-      text: 'text-black',
-      descText: 'text-black/85',
-      waveStroke: 'rgba(40, 90, 200, 0.18)',
-      marginTop: 'lg:mt-0',
-    },
-    {
-      id: 4,
-      title: 'Персонализируй\nплан',
-      desc: 'Получи подборку: какие курсы пройти, в какой проект вступить или какую стажировку выбрать',
-      bg: 'bg-[#FFF886]',
-      tabColor: '#E5DE62',
-      text: 'text-black',
-      descText: 'text-black/85',
-      waveStroke: 'rgba(180, 160, 20, 0.22)',
-      marginTop: 'lg:mt-10',
-    },
-  ];
-
-  // Данные для 4 карточек специальностей
-  const specialtyCards = [
-    {
-      id: 1,
-      title: 'Data Scientist',
-      desc: 'Извлекай знания из данных\nи строй ML-модели',
-      icon: '/icons/data-scientist.png',
-    },
-    {
-      id: 2,
-      title: 'Frontend-разработчик',
-      desc: 'Воплощай дизайн в код: быстро,\nкрасиво, функционально',
-      icon: '/icons/frontend.png',
-    },
-    {
-      id: 3,
-      title: 'UX/UI-дизайнер',
-      desc: 'Создавай цифровые продукты,\nкоторыми приятно пользоваться',
-      icon: '/icons/ui-ux.png',
-    },
-    {
-      id: 4,
-      title: 'Product Manager',
-      desc: 'Соединяй бизнес, пользователей\nи команду разработки',
-      icon: '/icons/product-manager.png',
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-[#05131C] text-white selection:bg-[#FFF886] selection:text-black">
@@ -258,6 +255,7 @@ export const HomePage: React.FC = () => {
           {/* Стрелки перелистывания слайдера */}
           <div className="flex justify-between items-center px-1 pt-2">
             <button
+              type="button"
               aria-label="Назад"
               className="w-[100px] h-[50px] rounded-[30px] bg-[#FDFCEA] text-black flex items-center justify-center hover:bg-white transition shadow-md group cursor-pointer"
             >
@@ -280,6 +278,7 @@ export const HomePage: React.FC = () => {
             </button>
 
             <button
+              type="button"
               aria-label="Вперед"
               className="w-[100px] h-[50px] rounded-[30px] bg-[#FDFCEA] text-black flex items-center justify-center hover:bg-white transition shadow-md group cursor-pointer"
             >
@@ -444,65 +443,7 @@ export const HomePage: React.FC = () => {
       </main>
 
       {/* 6. ФУТЕР */}
-      <footer className="w-full px-6 lg:px-[90px] pb-10">
-        <div className="w-full bg-[#252D33] rounded-[36px] px-8 lg:px-14 py-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
-          {/* Левая часть: логотип и контакты */}
-          <div className="space-y-2 text-center md:text-left">
-            <span className="font-pixel text-2xl lg:text-[28px] text-[#FDFCEA] tracking-wide block">
-              MySkill
-            </span>
-            <p className="text-[#DDD2FD] text-sm font-normal">
-              Напишите нам:{' '}
-              <a
-                href="mailto:roadmaps@myskill.com"
-                className="text-[#DDD2FD] hover:underline transition-colors decoration-[#DDD2FD]/50 underline-offset-4"
-              >
-                roadmaps@myskill.com
-              </a>
-            </p>
-          </div>
-
-          {/* Правая часть: кнопка «Вверх ↑» */}
-          <div className="flex flex-col items-center md:items-end gap-3">
-            <button
-              onClick={scrollToTop}
-              className="inline-flex items-center group cursor-pointer"
-            >
-              <span className="bg-[#DDD2FD] group-hover:bg-[#D1C3FC] text-black text-sm font-bold h-[42px] px-6 rounded-full flex items-center justify-center transition shadow-sm">
-                Вверх
-              </span>
-              <span className="w-[42px] h-[42px] rounded-full bg-[#05131C] flex items-center justify-center shrink-0 -ml-[1px] group-hover:-translate-y-0.5 transition-transform shadow-sm">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <rect width="8" height="2" transform="matrix(1 0 0 -1 8 21)" fill="#DDD2FD"/>
-                  <rect width="2" height="6" transform="matrix(1 0 0 -1 8 19)" fill="#DDD2FD"/>
-                  <rect width="5" height="2" transform="matrix(1 0 0 -1 3 13)" fill="#DDD2FD"/>
-                  <rect width="2" height="2" transform="matrix(1 0 0 -1 3 11)" fill="#DDD2FD"/>
-                  <rect width="2" height="2" transform="matrix(1 0 0 -1 5 9)" fill="#DDD2FD"/>
-                  <rect width="2" height="2" transform="matrix(1 0 0 -1 7 7)" fill="#DDD2FD"/>
-                  <rect width="2" height="2" transform="matrix(1 0 0 -1 9 5)" fill="#DDD2FD"/>
-                  <rect width="2" height="2" transform="matrix(1 0 0 -1 11 3)" fill="#DDD2FD"/>
-                  <rect width="2" height="2" transform="matrix(1 0 0 -1 13 5)" fill="#DDD2FD"/>
-                  <rect width="2" height="2" transform="matrix(1 0 0 -1 15 7)" fill="#DDD2FD"/>
-                  <rect width="2" height="2" transform="matrix(1 0 0 -1 17 9)" fill="#DDD2FD"/>
-                  <rect width="2" height="4" transform="matrix(1 0 0 -1 19 13)" fill="#DDD2FD"/>
-                  <rect width="3" height="2" transform="matrix(1 0 0 -1 16 13)" fill="#DDD2FD"/>
-                  <rect width="2" height="6" transform="matrix(1 0 0 -1 14 19)" fill="#DDD2FD"/>
-                </svg>
-              </span>
-            </button>
-
-            <span className="text-gray-400 text-xs font-normal">
-              © 2026 MySkill. Все права защищены.
-            </span>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
