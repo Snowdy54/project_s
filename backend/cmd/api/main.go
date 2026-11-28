@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/Snowdy54/project_s/backend/internal/app"
 	"github.com/go-chi/chi/v5"
@@ -12,26 +14,46 @@ import (
 	_ "github.com/lib/pq"
 )
 
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
 func main() {
 	// 1. Подключаемся к базе данных PostgreSQL
 	// Вставь свои реальные данные: пользователя, пароль и название БД
-	dsn := "host=localhost port=5432 user=postgres password=admin dbname=skillmap sslmode=disable"
-	db, err := sqlx.Connect("postgres", dsn)
-	if err != nil {
-		log.Fatalf("Ошибка подключения к БД: %v", err)
-	}
-	defer db.Close()
+	// 1. Подключаемся к PostgreSQL (работает и в Docker, и локально)
+	dsn := getEnv(
+		"DATABASE_URL",
+		"host=localhost port=5432 user=postgres password=admin dbname=skillmap sslmode=disable",
+	)
 
-	// Проверяем, что база реально отвечает
-	if err := db.Ping(); err != nil {
+	var db *sqlx.DB
+	var err error
+	for attempt := 1; attempt <= 10; attempt++ {
+		db, err = sqlx.Connect("postgres", dsn)
+		if err == nil {
+			if pingErr := db.Ping(); pingErr == nil {
+				break
+			} else {
+				err = pingErr
+			}
+		}
+		log.Printf("Ожидание PostgreSQL (попытка %d/10): %v", attempt, err)
+		time.Sleep(2 * time.Second)
+	}
+	if err != nil {
 		log.Fatalf("База данных недоступна: %v", err)
 	}
+	defer db.Close()
 
 	go app.StartHHScheduler(context.Background(), db)
 
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:*", "http://127.0.0.1:*"},
+		AllowedOrigins:   []string{"http://localhost", "http://127.0.0.1", "http://localhost:*", "http://127.0.0.1:*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -75,8 +97,9 @@ func main() {
 	})
 
 	// 4. Запускаем сервер на порту 8080
-	log.Println("Сервер запущен на http://localhost:8000")
-	if err := http.ListenAndServe(":8000", r); err != nil {
+	port := getEnv("PORT", "8000")
+	log.Printf("Сервер запущен на http://localhost:%s", port)
+	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatalf("Ошибка запуска сервера: %v", err)
 	}
 }
