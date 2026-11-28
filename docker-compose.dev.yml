@@ -1,4 +1,42 @@
 services:
+  db:
+    image: postgres:18-alpine
+    container_name: project_s-db-dev
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=skillmap
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata-dev:/var/lib/postgresql
+      - ./backend/migrations/app:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d skillmap"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: project_s-backend-dev
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - DATABASE_URL=host=db port=5432 user=postgres password=admin dbname=skillmap sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+
   frontend:
     build:
       context: .
@@ -13,17 +51,13 @@ services:
       - /app/node_modules
     environment:
       - VITE_BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
     networks:
       - app-network
 
-  # backend:
-  #   build:
-  #     context: ./backend
-  #   container_name: project_s-backend-dev
-  #   ports:
-  #     - "8000:8000"
-  #   networks:
-  #     - app-network
+volumes:
+  pgdata-dev:
 
 networks:
   app-network:

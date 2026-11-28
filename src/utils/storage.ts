@@ -1,8 +1,10 @@
 export const STORAGE_KEYS = {
   AUTH: 'skillmap_user_auth_v1',
+  TOKEN: 'skillmap_auth_token_v1',
   PROFILE: 'skillmap_user_profile_v2',
   FAVORITES: 'skillmap_user_favorites_v2',
   ROADMAP_NODES: 'skillmap_frontend_nodes_v3',
+  COMPLETED_PROJECTS: 'skillmap_completed_projects_v1',
 } as const;
 
 function notifyStorageSync(key: string): void {
@@ -54,4 +56,16 @@ export function removeStorageItem(key: string): boolean {
   } catch {
     return false;
   }
+}
+
+export function getAuthToken(): string | null {
+  const token = getStorageItem<string | null>(STORAGE_KEYS.TOKEN, null);
+  return typeof token === 'string' && token.length > 0 ? token : null;
+}
+
+export function setAuthToken(token: string | null): boolean {
+  if (!token) {
+    return removeStorageItem(STORAGE_KEYS.TOKEN);
+  }
+  return setStorageItem(STORAGE_KEYS.TOKEN, token);
 }

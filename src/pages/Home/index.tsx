@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MySkillKeysHero } from '../../components/home/MySkillKeysHero';
+import { MiniRoadmapPreview } from '../../components/home/MiniRoadmapPreview';
 import { Footer } from '../../components/layout/Footer';
 
 // Данные для 4 карточек-папок преимуществ
@@ -302,13 +303,9 @@ export const HomePage: React.FC = () => {
           </div>
         </section>
 
-        {/* 4. ПЛЕЙСХОЛДЕР ИНТЕРАКТИВНОЙ КАРТЫ */}
+        {/* 4. ИНТЕРАКТИВНОЕ ПРЕВЬЮ КАРТЫ С 3 КЛИКАБЕЛЬНЫМИ УЗЛАМИ */}
         <section className="py-4">
-          <div className="border border-dashed border-white/20 rounded-[32px] bg-[#0A1622] p-16 text-center">
-            <p className="text-gray-400 font-bold text-base md:text-lg">
-              тут будет пример интерактивной карты с тремя кликабельными узлами
-            </p>
-          </div>
+          <MiniRoadmapPreview />
         </section>
 
         {/* 5. НИЖНИЙ ПРОМО-БАННЕР */}

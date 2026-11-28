@@ -8,12 +8,13 @@ import {
 } from '../../components/auth/AuthIcons';
 import { defaultUserProfile } from '../../data/achievementsData';
 import type { UserProfileData } from '../../types/profile';
-import { STORAGE_KEYS, setStorageItem } from '../../utils/storage';
+import { STORAGE_KEYS, setStorageItem, setAuthToken } from '../../utils/storage';
 import {
   isValidEmail,
   isValidPhone,
   isValidNickname,
 } from '../../utils/validation';
+import { registerUser, githubAuth, ApiError } from '../../utils/api';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ export const RegisterPage: React.FC = () => {
     contactValue.trim().length > 0 &&
     passwordValue.length >= 6;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const nextErrors: { name?: string; contact?: string; password?: boolean } = {};
@@ -68,14 +69,34 @@ export const RegisterPage: React.FC = () => {
       phone: !isEmail ? trimmedContact : '',
     };
 
-    setStorageItem(STORAGE_KEYS.PROFILE, newProfile);
-    setStorageItem(STORAGE_KEYS.AUTH, true);
-    navigate('/profile');
+    try {
+      const auth = await registerUser(trimmedName, trimmedContact, passwordValue);
+      setAuthToken(auth.token);
+      setStorageItem(STORAGE_KEYS.PROFILE, newProfile);
+      setStorageItem(STORAGE_KEYS.AUTH, true);
+      navigate('/profile');
+    } catch (err) {
+      if (err instanceof ApiError && err.status > 0) {
+        setErrors({ contact: err.message });
+        return;
+      }
+      // Офлайн-фолбэк, если бэкенд недоступен
+      setStorageItem(STORAGE_KEYS.PROFILE, newProfile);
+      setStorageItem(STORAGE_KEYS.AUTH, true);
+      navigate('/profile');
+    }
   };
 
-  const handleGitHubRegister = () => {
-    setStorageItem(STORAGE_KEYS.AUTH, true);
-    navigate('/profile');
+  const handleGitHubRegister = async () => {
+    try {
+      const auth = await githubAuth();
+      setAuthToken(auth.token);
+      setStorageItem(STORAGE_KEYS.AUTH, true);
+      navigate('/profile');
+    } catch {
+      setStorageItem(STORAGE_KEYS.AUTH, true);
+      navigate('/profile');
+    }
   };
 
   return (

@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import type { SkillNodeData, SkillEdgeData, NodeStatus } from '../../types/roadmap';
 import { RoadmapNode } from './RoadmapNode';
+import { computeEdgePath } from '../../utils/roadmapEdges';
 
 interface RoadmapCanvasProps {
   nodes: SkillNodeData[];
@@ -81,13 +82,7 @@ export const RoadmapCanvas: React.FC<RoadmapCanvasProps> = ({
     const target = nodes.find((n) => n.id === edge.target);
     if (!source || !target) return null;
 
-    const dx = Math.abs(target.x - source.x);
-    const c1x = source.x + dx * 0.5;
-    const c1y = source.y;
-    const c2x = target.x - dx * 0.5;
-    const c2y = target.y;
-
-    const pathData = `M ${source.x} ${source.y} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${target.x} ${target.y}`;
+    const pathData = computeEdgePath(source, target, nodes);
 
     return (
       <path

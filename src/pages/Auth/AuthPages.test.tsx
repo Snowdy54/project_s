@@ -1,11 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { LoginPage } from './LoginPage';
 import { RegisterPage } from './RegisterPage';
 import { ProfilePage } from '../Profile';
-import { STORAGE_KEYS, getStorageItem, setStorageItem } from '../../utils/storage';
+import {
+  STORAGE_KEYS,
+  getStorageItem,
+  setStorageItem,
+  getAuthToken,
+} from '../../utils/storage';
 import type { UserProfileData } from '../../types/profile';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -25,6 +30,7 @@ describe('Auth & Profile UI Integration', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    vi.restoreAllMocks();
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -37,8 +43,19 @@ describe('Auth & Profile UI Integration', () => {
     container.remove();
   });
 
-  it('validates LoginPage fields and authorizes on submit', async () => {
+  it('validates LoginPage fields and authorizes via /api/auth/login', async () => {
     setStorageItem(STORAGE_KEYS.AUTH, false);
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/auth/login')) {
+        return new Response(
+          JSON.stringify({ token: 'jwt-test-token', user_id: 1, nickname: 'Tester' }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+    });
 
     await act(async () => {
       root.render(
@@ -70,14 +87,28 @@ describe('Auth & Profile UI Integration', () => {
 
     await act(async () => {
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+      await Promise.resolve();
     });
 
     expect(getStorageItem(STORAGE_KEYS.AUTH, false)).toBe(true);
+    expect(getAuthToken()).toBe('jwt-test-token');
     expect(container.querySelector('[data-testid="profile-ok"]')).not.toBeNull();
   });
 
-  it('validates RegisterPage rules and stores new user profile', async () => {
+  it('validates RegisterPage rules and stores new user profile via /api/auth/register', async () => {
     setStorageItem(STORAGE_KEYS.AUTH, false);
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/auth/register')) {
+        return new Response(
+          JSON.stringify({ token: 'jwt-reg-token', user_id: 2, nickname: 'Иван Петров' }),
+          { status: 201, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+    });
 
     await act(async () => {
       root.render(
@@ -117,6 +148,8 @@ describe('Auth & Profile UI Integration', () => {
 
     await act(async () => {
       form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+      await Promise.resolve();
     });
 
     const saved = getStorageItem<UserProfileData | null>(STORAGE_KEYS.PROFILE, null);
@@ -124,6 +157,7 @@ describe('Auth & Profile UI Integration', () => {
     expect(saved?.nickname).toBe('Иван Петров');
     expect(saved?.email).toBe('ivan@myskill.ru');
     expect(saved?.phone).toBe('');
+    expect(getAuthToken()).toBe('jwt-reg-token');
     expect(getStorageItem(STORAGE_KEYS.AUTH, false)).toBe(true);
     expect(container.querySelector('[data-testid="profile-ok"]')).not.toBeNull();
   });
