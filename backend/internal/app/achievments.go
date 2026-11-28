@@ -144,18 +144,35 @@ func CheckProgressAchievements(db *sqlx.DB, userID, roadmapID int64, startedActi
 		return unlocked
 	}
 
+	// Считаем также суммарное количество пройденных этапов по всем картам пользователя
+	var totalPassedAll int
+	if err := db.Get(&totalPassedAll, `
+		SELECT COUNT(DISTINCT skill_id)::int
+		FROM users_skill_progress
+		WHERE user_id = $1 AND status IN ('completed', 'skipped')
+	`, userID); err != nil {
+		log.Printf("Ошибка расчёта суммарных этапов для ачивок (user=%d): %v\n", userID, err)
+	}
+
 	progressPercent := (stats.Passed * 100) / stats.Total
 
-	// 3. Порог 50%: «Середина айсберга» (уникальное) и «Половина пути» (многоразовое)
-	if progressPercent >= 50 {
+	// 3. Порог 50% карты ИЛИ суммарные этапы (5 / 10 этапов по всем картам)
+	if progressPercent >= 50 || totalPassedAll >= 5 {
 		appendIfAwarded(db, &unlocked, userID, "tip_of_iceberg", "global")
+	}
+	if progressPercent >= 50 || totalPassedAll >= 10 {
 		appendIfAwarded(db, &unlocked, userID, "halfway_there", sourceKey)
 	}
 
-	// 4. Порог 100%: «Первая вершина», «Закреплённый навык» и направления (Backend / Frontend / DevOps)
-	if progressPercent == 100 {
+	// 4. Порог 100% карты ИЛИ суммарно >= 15 / 24 этапов
+	if progressPercent == 100 || totalPassedAll >= 15 {
 		appendIfAwarded(db, &unlocked, userID, "first_peak", "global")
+	}
+	if progressPercent == 100 || totalPassedAll >= 24 {
 		appendIfAwarded(db, &unlocked, userID, "mastered_skill", sourceKey)
+	}
+
+	if progressPercent == 100 {
 
 		var directionTags []string
 		err := db.Select(&directionTags, `

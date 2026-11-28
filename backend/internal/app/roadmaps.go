@@ -105,7 +105,7 @@ func HandleGetRoadmaps(db *sqlx.DB) http.HandlerFunc {
 
 		if err != nil {
 			log.Printf("Ошибка SQL (HandleGetRoadmaps): %v\n", err)
-			http.Error(w, `{"error": "Не удалось загрузить список карт"}`, http.StatusInternalServerError)
+			writeJSONError(w, "Не удалось загрузить список карт", http.StatusInternalServerError)
 			return
 		}
 
@@ -125,7 +125,7 @@ func HandleGetRoadmapTags(db *sqlx.DB) http.HandlerFunc {
 		err := db.Select(&tags, `SELECT id, name, category FROM roadmap_tags ORDER BY category, name`)
 		if err != nil {
 			log.Printf("Ошибка SQL (HandleGetRoadmapTags): %v\n", err)
-			http.Error(w, `{"error": "Не удалось загрузить теги"}`, http.StatusInternalServerError)
+			writeJSONError(w, "Не удалось загрузить теги", http.StatusInternalServerError)
 			return
 		}
 		if tags == nil {
@@ -141,7 +141,7 @@ func HandleGetRoadmapByID(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		roadmapID, err := strconv.ParseInt(chi.URLParam(r, "roadmapID"), 10, 64)
 		if err != nil {
-			http.Error(w, `{"error": "Неверный ID карты"}`, http.StatusBadRequest)
+			writeJSONError(w, "Неверный ID карты", http.StatusBadRequest)
 			return
 		}
 		userID := getCurrentUserID(r)
@@ -155,12 +155,12 @@ func HandleGetRoadmapByID(db *sqlx.DB) http.HandlerFunc {
 			WHERE id = $1
 		`, roadmapID)
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, `{"error": "Карта не найдена"}`, http.StatusNotFound)
+			writeJSONError(w, "Карта не найдена", http.StatusNotFound)
 			return
 		}
 		if err != nil {
 			log.Printf("Ошибка SQL (roadmap meta): %v\n", err)
-			http.Error(w, `{"error": "Не удалось загрузить карту"}`, http.StatusInternalServerError)
+			writeJSONError(w, "Не удалось загрузить карту", http.StatusInternalServerError)
 			return
 		}
 
@@ -188,7 +188,7 @@ func HandleGetRoadmapByID(db *sqlx.DB) http.HandlerFunc {
 		`, userID, roadmapID)
 		if err != nil {
 			log.Printf("Ошибка SQL (roadmap nodes): %v\n", err)
-			http.Error(w, `{"error": "Не удалось загрузить узлы карты"}`, http.StatusInternalServerError)
+			writeJSONError(w, "Не удалось загрузить узлы карты", http.StatusInternalServerError)
 			return
 		}
 		if nodes == nil {
@@ -280,7 +280,7 @@ func HandleRemoveFavorite(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		roadmapID, err := strconv.ParseInt(chi.URLParam(r, "roadmapID"), 10, 64)
 		if err != nil {
-			http.Error(w, `{"error": "Неверный ID карты"}`, http.StatusBadRequest)
+			writeJSONError(w, "Неверный ID карты", http.StatusBadRequest)
 			return
 		}
 		userID := getCurrentUserID(r)
@@ -288,7 +288,7 @@ func HandleRemoveFavorite(db *sqlx.DB) http.HandlerFunc {
 		_, err = db.Exec(`DELETE FROM user_favorite_roadmaps WHERE user_id = $1 AND roadmap_id = $2`, userID, roadmapID)
 		if err != nil {
 			log.Printf("Ошибка SQL (HandleRemoveFavorite): %v\n", err)
-			http.Error(w, `{"error": "Не удалось удалить карту из закладок"}`, http.StatusInternalServerError)
+			writeJSONError(w, "Не удалось удалить карту из закладок", http.StatusInternalServerError)
 			return
 		}
 

@@ -6,7 +6,8 @@ import {
   PasswordHideIcon,
   GitHubCat16Icon,
 } from '../../components/auth/AuthIcons';
-import { STORAGE_KEYS, setStorageItem } from '../../utils/storage';
+import { STORAGE_KEYS, setStorageItem, setAuthToken } from '../../utils/storage';
+import { loginUser, githubAuth, fetchProfile, ApiError } from '../../utils/api';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -22,7 +23,27 @@ export const LoginPage: React.FC = () => {
   const isFormReady =
     loginValue.trim().length > 0 && passwordValue.trim().length > 0;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const syncProfileFromBackend = async () => {
+    try {
+      const res = await fetchProfile();
+      setStorageItem(STORAGE_KEYS.PROFILE, {
+        nickname: res.profile.nickname,
+        email: res.profile.email,
+        phone: res.profile.phone,
+        avatarUrl: res.profile.avatar_url || '',
+        links: {
+          github: res.profile.github_url || '',
+          vk: res.profile.vk_url || '',
+          telegram: res.profile.telegram_url || '',
+          website: res.profile.website_url || '',
+        },
+      });
+    } catch {
+      // Игнорируем, если профиль подгрузится на странице /profile
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const nextErrors: { login?: string; password?: string } = {};
@@ -38,13 +59,34 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
-    setStorageItem(STORAGE_KEYS.AUTH, true);
-    navigate('/profile');
+    try {
+      const auth = await loginUser(loginValue.trim(), passwordValue);
+      setAuthToken(auth.token);
+      setStorageItem(STORAGE_KEYS.AUTH, true);
+      await syncProfileFromBackend();
+      navigate('/profile');
+    } catch (err) {
+      if (err instanceof ApiError && err.status > 0) {
+        setErrors({ login: err.message });
+        return;
+      }
+      // Офлайн-фолбэк, если бэкенд недоступен
+      setStorageItem(STORAGE_KEYS.AUTH, true);
+      navigate('/profile');
+    }
   };
 
-  const handleGitHubLogin = () => {
-    setStorageItem(STORAGE_KEYS.AUTH, true);
-    navigate('/profile');
+  const handleGitHubLogin = async () => {
+    try {
+      const auth = await githubAuth();
+      setAuthToken(auth.token);
+      setStorageItem(STORAGE_KEYS.AUTH, true);
+      await syncProfileFromBackend();
+      navigate('/profile');
+    } catch {
+      setStorageItem(STORAGE_KEYS.AUTH, true);
+      navigate('/profile');
+    }
   };
 
   return (

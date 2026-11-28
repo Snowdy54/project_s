@@ -17,6 +17,7 @@ type UserProfile struct {
 	Nickname    string `db:"nickname" json:"nickname"`
 	Email       string `db:"email" json:"email"`
 	Phone       string `db:"phone" json:"phone"`
+	AvatarURL   string `db:"avatar_url" json:"avatar_url"`
 	GitHubURL   string `db:"github_url" json:"github_url"`
 	VKURL       string `db:"vk_url" json:"vk_url"`
 	TelegramURL string `db:"telegram_url" json:"telegram_url"`
@@ -45,6 +46,7 @@ func HandleGetProfile(db *sqlx.DB) http.HandlerFunc {
 			SELECT id, nickname,
 			       COALESCE(email, '') AS email,
 			       COALESCE(phone, '') AS phone,
+			       COALESCE(avatar_url, '') AS avatar_url,
 			       github_url, vk_url, telegram_url, website_url
 			FROM users
 			WHERE id = $1
@@ -131,6 +133,7 @@ type UpdateProfileRequest struct {
 	Nickname    string `json:"nickname"`
 	Email       string `json:"email"`
 	Phone       string `json:"phone"`
+	AvatarURL   string `json:"avatar_url"`
 	GitHubURL   string `json:"github_url"`
 	VKURL       string `json:"vk_url"`
 	TelegramURL string `json:"telegram_url"`
@@ -178,12 +181,13 @@ func HandleUpdateProfile(db *sqlx.DB) http.HandlerFunc {
 			phonePtr = &phoneStr
 		}
 
-		_, err := db.Exec(`
+		res, err := db.Exec(`
 			UPDATE users
 			SET nickname = $1, email = $2, phone = $3,
-			    github_url = $4, vk_url = $5, telegram_url = $6, website_url = $7
-			WHERE id = $8
+			    avatar_url = $4, github_url = $5, vk_url = $6, telegram_url = $7, website_url = $8
+			WHERE id = $9
 		`, req.Nickname, emailPtr, phonePtr,
+			strings.TrimSpace(req.AvatarURL),
 			strings.TrimSpace(req.GitHubURL),
 			strings.TrimSpace(req.VKURL),
 			strings.TrimSpace(req.TelegramURL),
@@ -198,6 +202,10 @@ func HandleUpdateProfile(db *sqlx.DB) http.HandlerFunc {
 			}
 			log.Printf("Ошибка SQL (HandleUpdateProfile): %v\n", err)
 			writeJSONError(w, "Не удалось сохранить изменения. Попробуйте снова.", http.StatusInternalServerError)
+			return
+		}
+		if rows, _ := res.RowsAffected(); rows == 0 {
+			writeJSONError(w, "Пользователь не найден", http.StatusNotFound)
 			return
 		}
 

@@ -5,13 +5,18 @@ import { RichContentRenderer } from '../../components/projects/RichContentRender
 import { PixelRightArrow } from '../../components/projects/ProjectCard';
 import { PixelLeftArrow } from './index';
 import { Footer } from '../../components/layout/Footer';
+import { STORAGE_KEYS, getStorageItem, setStorageItem } from '../../utils/storage';
 
 export const ProjectDetailPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const [hasError, setHasError] = useState(false);
   const [isAtGuide, setIsAtGuide] = useState(false);
+  const [completedProjects, setCompletedProjects] = useState<string[]>(() =>
+    getStorageItem<string[]>(STORAGE_KEYS.COMPLETED_PROJECTS, [])
+  );
 
   const project = backendProjectsData.find((p) => p.id === projectId);
+  const isCompleted = Boolean(projectId && completedProjects.includes(projectId));
 
   useEffect(() => {
     const handleScroll = () => {
@@ -51,9 +56,18 @@ export const ProjectDetailPage: React.FC = () => {
 
   const handleStartProject = () => {
     const guideEl = document.getElementById('step-by-step-guide');
-    if (guideEl) {
+    if (!isAtGuide && guideEl) {
       guideEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
     }
+    if (!projectId) return;
+    setCompletedProjects((prev) => {
+      const next = prev.includes(projectId)
+        ? prev.filter((id) => id !== projectId)
+        : [...prev, projectId];
+      setStorageItem(STORAGE_KEYS.COMPLETED_PROJECTS, next);
+      return next;
+    });
   };
 
   return (
@@ -158,28 +172,33 @@ export const ProjectDetailPage: React.FC = () => {
         )}
       </main>
 
-      {/* Плавающая кнопка: видна и мигает, пока пользователь не дошёл до пошагового гайда */}
+      {/* Плавающая кнопка: скролл к руководству, затем отметка выполнения проекта */}
       {project && difficultyStyles && !hasError && (
         <button
           type="button"
           onClick={handleStartProject}
-          aria-hidden={isAtGuide}
-          tabIndex={isAtGuide ? -1 : 0}
           style={
             {
-              backgroundColor: difficultyStyles.color,
+              backgroundColor: isAtGuide && isCompleted ? '#34C759' : difficultyStyles.color,
               color: difficultyStyles.btnText,
-              '--cta-glow': difficultyStyles.glowRgba,
+              '--cta-glow':
+                isAtGuide && isCompleted
+                  ? 'rgba(52, 199, 89, 0.75)'
+                  : difficultyStyles.glowRgba,
             } as React.CSSProperties
           }
           className={`${
-            isAtGuide
-              ? 'opacity-0 translate-y-3 pointer-events-none'
-              : 'opacity-100 translate-y-0 float-cta-blink cursor-pointer'
-          } fixed bottom-8 right-6 lg:right-[90px] z-50 h-[52px] px-7 rounded-full font-semibold text-[15px] inline-flex items-center gap-3 transition-all duration-300 select-none`}
+            !isAtGuide ? 'float-cta-blink' : ''
+          } fixed bottom-8 right-6 lg:right-[90px] z-50 h-[52px] px-7 rounded-full font-semibold text-[15px] inline-flex items-center gap-3 transition-all duration-300 select-none cursor-pointer shadow-lg`}
         >
-          <span>Приступить к выполнению</span>
-          <PixelRightArrow />
+          <span>
+            {!isAtGuide
+              ? 'Приступить к выполнению'
+              : isCompleted
+                ? 'Проект выполнен ✓'
+                : 'Отметить выполненным'}
+          </span>
+          {!isAtGuide && <PixelRightArrow />}
         </button>
       )}
 

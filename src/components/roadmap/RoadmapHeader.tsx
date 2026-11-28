@@ -7,7 +7,6 @@ interface RoadmapHeaderProps {
   progressPercent?: number;
   currentLevel?: string;
   isAuthorized?: boolean;
-  onToggleAuth?: () => void;
   onExportPDF?: () => void;
 }
 
@@ -32,7 +31,6 @@ export const RoadmapHeader: React.FC<RoadmapHeaderProps> = ({
   progressPercent = 48,
   currentLevel = 'Продвинутый',
   isAuthorized = true,
-  onToggleAuth = () => {},
   onExportPDF = () => {},
 }) => {
   const [openStates, setOpenStates] = useState({
@@ -69,18 +67,15 @@ export const RoadmapHeader: React.FC<RoadmapHeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onToggleAuth}
-            className={`h-9 px-4 rounded-full text-xs font-semibold border transition cursor-pointer ${
+          <span
+            className={`h-9 px-4 rounded-full text-xs font-semibold border inline-flex items-center ${
               isAuthorized
                 ? 'bg-emerald-950/70 text-emerald-400 border-emerald-700'
                 : 'bg-amber-950/70 text-amber-300 border-amber-700'
             }`}
-            title="Переключение авторизации"
           >
             {isAuthorized ? 'Авторизован' : 'Гость (без входа)'}
-          </button>
+          </span>
 
           <button
             type="button"
@@ -182,13 +177,20 @@ export const RoadmapHeader: React.FC<RoadmapHeaderProps> = ({
 
           {openStates.desc && (
             <div className="p-7 text-white text-[14px] leading-relaxed space-y-4">
-              <p>Создание интерфейсов, с которыми взаимодействует пользователь.</p>
+              <p>
+                {directionInfo?.description.overview ||
+                  'Создание интерфейсов, с которыми взаимодействует пользователь.'}
+              </p>
               <div className="space-y-1.5">
                 <p>
-                  <span style={{ fontFamily: 'Product Sans Black, sans-serif' }} className="font-black">Навыки:</span> HTML, CSS, JS, React, Инструменты сборки.
+                  <span style={{ fontFamily: 'Product Sans Black, sans-serif' }} className="font-black">Навыки:</span>{' '}
+                  {directionInfo?.description.requiredSkills.join(', ') ||
+                    'HTML, CSS, JS, React, Инструменты сборки.'}
                 </p>
                 <p>
-                  <span style={{ fontFamily: 'Product Sans Black, sans-serif' }} className="font-black">Задачи:</span> Верстка макетов, реализация логики на клиенте, работа с API.
+                  <span style={{ fontFamily: 'Product Sans Black, sans-serif' }} className="font-black">Задачи:</span>{' '}
+                  {directionInfo?.description.typicalTasks.join(', ') ||
+                    'Верстка макетов, реализация логики на клиенте, работа с API.'}
                 </p>
               </div>
             </div>
@@ -220,7 +222,8 @@ export const RoadmapHeader: React.FC<RoadmapHeaderProps> = ({
           {openStates.ai && (
             <div className="p-7 text-white text-[14px] leading-relaxed">
               <p>
-                ИИ ускоряет написание шаблонного кода и генерацию тестов, однако глубокое понимание архитектуры и UX остается критически важным для специалиста.
+                {directionInfo?.aiImpact?.[0] ||
+                  'ИИ ускоряет написание шаблонного кода и генерацию тестов, однако глубокое понимание архитектуры и UX остается критически важным для специалиста.'}
               </p>
             </div>
           )}
@@ -251,14 +254,20 @@ export const RoadmapHeader: React.FC<RoadmapHeaderProps> = ({
           {openStates.related && (
             <div className="p-7 text-white text-[14px] leading-relaxed">
               <ul className="space-y-2">
-                <li className="flex items-center gap-2">
-                  <span className="text-white">•</span>
-                  <span>UI/UX Дизайн</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-white">•</span>
-                  <span>Backend Node.js</span>
-                </li>
+                {(directionInfo?.relatedDirections || [
+                  { title: 'UI/UX Дизайн', path: '/roadmap/ui-ux' },
+                  { title: 'Backend Node.js', path: '/roadmap/backend-node' },
+                ]).map((rel) => (
+                  <li key={rel.path} className="flex items-center gap-2">
+                    <span className="text-[#99C3FD]">•</span>
+                    <Link
+                      to={rel.path}
+                      className="text-white hover:text-[#FFF886] hover:underline transition"
+                    >
+                      {rel.title}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
           )}

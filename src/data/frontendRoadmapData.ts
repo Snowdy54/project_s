@@ -324,8 +324,8 @@ export const initialFrontendNodes: SkillNodeData[] = [
     difficulty: 'advanced',
     status: 'in_progress',
     x: 759,
-    y: 427,
-    labelPosition: 'bottom',
+    y: 410,
+    labelPosition: 'top',
     description: 'Tailwind CSS, CSS-in-JS, shadcn/ui, изолированные стили компонентов.',
     prerequisites: ['CSS3 & Адаптив', 'React Основы'],
     resources: [
@@ -390,8 +390,8 @@ export const initialFrontendNodes: SkillNodeData[] = [
     difficulty: 'advanced',
     status: 'not_started',
     x: 889,
-    y: 544,
-    labelPosition: 'top',
+    y: 565,
+    labelPosition: 'bottom',
     description: 'useState, useEffect, useRef, useMemo, useCallback, пользовательские хуки.',
     prerequisites: ['React Основы'],
     resources: [

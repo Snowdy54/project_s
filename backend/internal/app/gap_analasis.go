@@ -335,12 +335,6 @@ func HandleApplyGapSurvey(db *sqlx.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := tx.Commit(); err != nil {
-			log.Printf("Ошибка коммита транзакции (apply): %v\n", err)
-			writeJSONError(w, "Не удалось сохранить результаты. Попробуйте снова", http.StatusInternalServerError)
-			return
-		}
-
 		// Проверяем достижения, если опрос изменил статусы узлов
 		if len(result.Changes) > 0 {
 			hasStarted := false

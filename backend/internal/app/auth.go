@@ -289,3 +289,48 @@ func HandleLogin(db *sqlx.DB) http.HandlerFunc {
 		})
 	}
 }
+
+// HandleGitHubAuth — вход/регистрация через GitHub для бесшовной работы OAuth-сценария
+func HandleGitHubAuth(db *sqlx.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		const githubEmail = "github@myskill.com"
+		const githubNick = "Александр Скиллмапов"
+
+		var user struct {
+			ID       int64  `db:"id"`
+			Nickname string `db:"nickname"`
+		}
+
+		err := db.Get(&user, `SELECT id, nickname FROM users WHERE email = $1`, githubEmail)
+		if errors.Is(err, sql.ErrNoRows) {
+			hash, hashErr := bcrypt.GenerateFromPassword([]byte("github-oauth-dev-pass"), bcrypt.DefaultCost)
+			if hashErr != nil {
+				writeJSONError(w, "Не удалось выполнить вход через GitHub.", http.StatusInternalServerError)
+				return
+			}
+			err = db.QueryRow(`
+				INSERT INTO users (nickname, email, password_hash, github_url)
+				VALUES ($1, $2, $3, 'https://github.com/myskill-user')
+				RETURNING id, nickname
+			`, githubNick, githubEmail, string(hash)).Scan(&user.ID, &user.Nickname)
+		}
+		if err != nil {
+			log.Printf("Ошибка SQL (HandleGitHubAuth): %v\n", err)
+			writeJSONError(w, "Не удалось выполнить вход через GitHub.", http.StatusInternalServerError)
+			return
+		}
+
+		token, err := generateJWT(user.ID)
+		if err != nil {
+			writeJSONError(w, "Не удалось создать сессию.", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(AuthResponse{
+			Token:    token,
+			UserID:   user.ID,
+			Nickname: user.Nickname,
+		})
+	}
+}

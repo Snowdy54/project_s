@@ -37,12 +37,22 @@ import {
   getStorageItem,
   setStorageItem,
   removeStorageItem,
+  getAuthToken,
+  setAuthToken,
 } from '../../utils/storage';
 import {
   isValidEmail,
   isValidPhone,
   hasForbiddenQuotes,
 } from '../../utils/validation';
+import {
+  fetchProfile,
+  fetchAchievements,
+  updateProfile,
+  deleteProfile,
+  removeFavoriteRoadmap,
+  ApiError,
+} from '../../utils/api';
 
 type ProfileTab = 'profile' | 'activity' | 'achievements';
 
@@ -104,14 +114,85 @@ export const ProfilePage: React.FC = () => {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Активность: начатые («Ваши карты») и избранные («Избранные карты»)
-  const [startedMaps] = useState<UserRoadmapProgress[]>(initialStartedMaps);
+  const [startedMaps, setStartedMaps] = useState<UserRoadmapProgress[]>(initialStartedMaps);
   const [favoriteMaps, setFavoriteMaps] = useState<UserRoadmapProgress[]>(() =>
     getStorageItem<UserRoadmapProgress[]>(STORAGE_KEYS.FAVORITES, initialFavoriteMaps)
   );
   const [mapToRemoveId, setMapToRemoveId] = useState<string | null>(null);
 
   // Достижения
-  const [achievements] = useState<AchievementDefinition[]>(achievementsCatalog);
+  const [achievements, setAchievements] = useState<AchievementDefinition[]>(achievementsCatalog);
+  const [selectedAchievementId, setSelectedAchievementId] = useState<string | null>(null);
+
+  // Загрузка реальных данных профиля и достижений с бэкенда при наличии JWT-токена
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!isAuthorized || !token) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const [profileRes, achRes] = await Promise.all([
+          fetchProfile(),
+          fetchAchievements(),
+        ]);
+        if (cancelled) return;
+
+        const mappedProfile: UserProfileData = {
+          nickname: profileRes.profile.nickname,
+          email: profileRes.profile.email || '',
+          phone: profileRes.profile.phone || '',
+          avatarUrl: profileRes.profile.avatar_url || '',
+          links: {
+            github: profileRes.profile.github_url || '',
+            vk: profileRes.profile.vk_url || '',
+            telegram: profileRes.profile.telegram_url || '',
+            website: profileRes.profile.website_url || '',
+          },
+        };
+        setSavedProfile(mappedProfile);
+        setFormProfile(mappedProfile);
+        setStorageItem(STORAGE_KEYS.PROFILE, mappedProfile);
+
+        setStartedMaps(
+          profileRes.started_roadmaps.map((m) => ({
+            id: String(m.id),
+            title: m.title,
+            progress: m.progress_percent,
+            path: '/roadmap',
+          }))
+        );
+
+        const mappedFavorites = profileRes.favorite_roadmaps.map((m) => ({
+          id: String(m.id),
+          title: m.title,
+          progress: m.progress_percent,
+          path: '/roadmap',
+        }));
+        setFavoriteMaps(mappedFavorites);
+        setStorageItem(STORAGE_KEYS.FAVORITES, mappedFavorites);
+
+        if (achRes.all_achievements.length > 0) {
+          setAchievements(
+            achRes.all_achievements.map((a) => ({
+              id: a.icon || a.code,
+              title: a.title,
+              condition: a.description,
+              points: a.points,
+              type: a.type,
+              unlockedCount: a.earned_count,
+            }))
+          );
+        }
+      } catch {
+        // При сетевой ошибке используем кэш localStorage
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthorized]);
 
   // Проверка наличия несохранённых изменений
   const isDirty = useMemo(() => {
@@ -155,7 +236,21 @@ export const ProfilePage: React.FC = () => {
     e.target.value = '';
   };
 
-  const handleSaveCroppedAvatar = (croppedDataUrl: string) => {
+  const syncProfileToBackend = async (profile: UserProfileData) => {
+    if (!getAuthToken()) return;
+    await updateProfile({
+      nickname: profile.nickname,
+      email: profile.email,
+      phone: profile.phone,
+      avatar_url: profile.avatarUrl,
+      github_url: profile.links.github,
+      vk_url: profile.links.vk,
+      telegram_url: profile.links.telegram,
+      website_url: profile.links.website,
+    });
+  };
+
+  const handleSaveCroppedAvatar = async (croppedDataUrl: string) => {
     const updatedSaved = { ...savedProfile, avatarUrl: croppedDataUrl };
     const updatedForm = { ...formProfile, avatarUrl: croppedDataUrl };
     if (!setStorageItem(STORAGE_KEYS.PROFILE, updatedSaved)) {
@@ -166,18 +261,28 @@ export const ProfilePage: React.FC = () => {
     setSavedProfile(updatedSaved);
     setFormProfile(updatedForm);
     setRawImageToCrop(null);
+    try {
+      await syncProfileToBackend(updatedSaved);
+    } catch {
+      // Аватар уже сохранен локально
+    }
   };
 
-  const handleResetAvatar = (e: React.MouseEvent) => {
+  const handleResetAvatar = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const updatedSaved = { ...savedProfile, avatarUrl: '' };
     const updatedForm = { ...formProfile, avatarUrl: '' };
     setSavedProfile(updatedSaved);
     setFormProfile(updatedForm);
     setStorageItem(STORAGE_KEYS.PROFILE, updatedSaved);
+    try {
+      await syncProfileToBackend(updatedSaved);
+    } catch {
+      // Локально сброшено
+    }
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
@@ -206,6 +311,15 @@ export const ProfilePage: React.FC = () => {
       phone: formProfile.phone.trim(),
     };
 
+    try {
+      await syncProfileToBackend(normalizedProfile);
+    } catch (err) {
+      if (err instanceof ApiError && err.status > 0) {
+        setFormError(err.message);
+        return;
+      }
+    }
+
     if (!setStorageItem(STORAGE_KEYS.PROFILE, normalizedProfile)) {
       setFormError('Не удалось сохранить изменения в локальное хранилище.');
       return;
@@ -222,17 +336,29 @@ export const ProfilePage: React.FC = () => {
   };
 
   const handleLogout = () => {
+    setAuthToken(null);
     setIsAuthorized(false);
     setStorageItem(STORAGE_KEYS.AUTH, false);
     navigate('/login');
   };
 
-  const handleConfirmDeleteAccount = (e: React.FormEvent) => {
+  const handleConfirmDeleteAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (deleteConfirmWord.trim() !== 'Удалить') {
       setDeleteError('Неверный ввод. Удаление аккаунта прервано.');
       return;
     }
+    if (getAuthToken()) {
+      try {
+        await deleteProfile(deleteConfirmWord.trim());
+      } catch (err) {
+        if (err instanceof ApiError && err.status > 0) {
+          setDeleteError(err.message);
+          return;
+        }
+      }
+    }
+    setAuthToken(null);
     removeStorageItem(STORAGE_KEYS.PROFILE);
     removeStorageItem(STORAGE_KEYS.FAVORITES);
     setStorageItem(STORAGE_KEYS.AUTH, false);
@@ -245,11 +371,20 @@ export const ProfilePage: React.FC = () => {
     navigate('/login');
   };
 
-  const handleRemoveFavorite = (id: string) => {
+  const handleRemoveFavorite = async (id: string) => {
     const updated = favoriteMaps.filter((m) => m.id !== id);
     setFavoriteMaps(updated);
     setStorageItem(STORAGE_KEYS.FAVORITES, updated);
     setMapToRemoveId(null);
+
+    const numericId = Number(id);
+    if (getAuthToken() && Number.isFinite(numericId) && numericId > 0) {
+      try {
+        await removeFavoriteRoadmap(numericId);
+      } catch {
+        // Локально удалено
+      }
+    }
   };
 
   const unlockedAchievements = achievements.filter((a) => a.unlockedCount > 0);
@@ -828,13 +963,24 @@ export const ProfilePage: React.FC = () => {
             {activeTab === 'achievements' && (
               <div className="space-y-8 w-full">
                 {/* Верхняя сиреневая плашка очков */}
-                <div>
+                <div className="flex flex-wrap items-center justify-between gap-4">
                   <span
                     style={{ fontFamily: 'Product Sans, sans-serif' }}
                     className="inline-flex items-center justify-center h-[40px] xl:h-[44px] px-6 xl:px-7 rounded-full bg-[#DDD2FD] text-[#05131C] text-[15px] xl:text-[17px] font-medium shadow-sm"
                   >
                     {totalAchievementPoints} очков
                   </span>
+
+                  {selectedAchievementId && (() => {
+                    const selectedAch = achievements.find((a) => a.id === selectedAchievementId);
+                    if (!selectedAch) return null;
+                    return (
+                      <div className="px-4 py-2 rounded-full border border-[#FFF886]/50 bg-[#05131C] text-[13px] text-[#FDFCEA] flex items-center gap-2">
+                        <span className="font-bold text-[#FFF886]">{selectedAch.title}:</span>
+                        <span>{selectedAch.condition}</span>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* СЕКЦИЯ 1: ВАШИ ДОСТИЖЕНИЯ */}
@@ -851,7 +997,10 @@ export const ProfilePage: React.FC = () => {
                       <div
                         key={`earned-${ach.id}`}
                         title={ach.condition}
-                        className="relative aspect-square rounded-[22px] xl:rounded-[26px] border border-[#FFF886] bg-[#05131C] p-3 xl:p-5 flex flex-col items-center justify-between shadow-[0_0_10px_rgba(255,248,134,0.3)] transition hover:shadow-[0_0_18px_rgba(255,248,134,0.5)]"
+                        onClick={() =>
+                          setSelectedAchievementId((prev) => (prev === ach.id ? null : ach.id))
+                        }
+                        className="relative aspect-square rounded-[22px] xl:rounded-[26px] border border-[#FFF886] bg-[#05131C] p-3 xl:p-4 flex flex-col items-center justify-between shadow-[0_0_10px_rgba(255,248,134,0.3)] transition hover:shadow-[0_0_18px_rgba(255,248,134,0.5)] cursor-pointer"
                       >
                         {/* Жёлтый круглый бейдж множителя ×1 / ×2 в правом верхнем углу */}
                         <span
@@ -871,7 +1020,7 @@ export const ProfilePage: React.FC = () => {
                         <div className="text-center space-y-1 xl:space-y-1.5 w-full">
                           <div
                             style={{ fontFamily: 'UnifontExMono, monospace' }}
-                            className="text-[13px] xl:text-[17px] text-[#FFF886] leading-tight truncate"
+                            className="text-[12.5px] xl:text-[15px] text-[#FFF886] leading-tight line-clamp-2 break-words"
                           >
                             {ach.title}
                           </div>
@@ -903,7 +1052,10 @@ export const ProfilePage: React.FC = () => {
                         <div
                           key={`catalog-${ach.id}`}
                           title={ach.condition}
-                          className={`aspect-square rounded-[22px] xl:rounded-[26px] bg-[#05131C] p-3 xl:p-5 flex flex-col items-center justify-between transition ${
+                          onClick={() =>
+                            setSelectedAchievementId((prev) => (prev === ach.id ? null : ach.id))
+                          }
+                          className={`aspect-square rounded-[22px] xl:rounded-[26px] bg-[#05131C] p-3 xl:p-4 flex flex-col items-center justify-between transition cursor-pointer ${
                             isUnlocked
                               ? 'border border-[#FFF886] shadow-[0_0_10px_rgba(255,248,134,0.3)] hover:shadow-[0_0_18px_rgba(255,248,134,0.5)]'
                               : 'border border-[#FDFCEA]/45 hover:border-[#FDFCEA]/75'
@@ -931,7 +1083,7 @@ export const ProfilePage: React.FC = () => {
                           <div className="text-center space-y-1 xl:space-y-1.5 w-full">
                             <div
                               style={{ fontFamily: 'UnifontExMono, monospace' }}
-                              className={`text-[13px] xl:text-[17px] leading-tight truncate ${
+                              className={`text-[12.5px] xl:text-[15px] leading-tight line-clamp-2 break-words ${
                                 isUnlocked ? 'text-[#FFF886]' : 'text-[#FDFCEA]/75'
                               }`}
                             >

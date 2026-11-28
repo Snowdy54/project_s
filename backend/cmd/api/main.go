@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -61,9 +62,32 @@ func main() {
 		MaxAge:           300,
 	}))
 
+	// Корневой маршрут и проверка здоровья API-сервера
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"service":  "MySkill API",
+			"status":   "ok",
+			"health":   "/api/health",
+			"frontend": "http://localhost",
+		})
+	})
+
+	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
+		if err := db.PingContext(r.Context()); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]string{"status": "error", "db": "unavailable"})
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "db": "connected"})
+	})
+
 	// 1. Авторизация (публичные)
 	r.Post("/api/auth/register", app.HandleRegister(db))
 	r.Post("/api/auth/login", app.HandleLogin(db))
+	r.Post("/api/auth/github", app.HandleGitHubAuth(db))
 
 	// 2. Публичные с опциональной авторизацией (гость видит карту, юзер — свой прогресс и закладки)
 	r.Group(func(r chi.Router) {

@@ -125,27 +125,31 @@ func HandleOnboarding(db *sqlx.DB) http.HandlerFunc {
 		// 1. Читаем JSON из тела запроса
 		var req OnboardingRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+			writeJSONError(w, "Неверный формат запроса", http.StatusBadRequest)
 			return
 		}
 
-		// Хардкодим пользователя для тестов
-		var userID int64 = 1
+		// 2. Берём userID из JWT-контекста
+		userID := getCurrentUserID(r)
+		if userID <= 0 {
+			writeJSONError(w, "Необходима авторизация", http.StatusUnauthorized)
+			return
+		}
 
-		// 2. Обращение к ИИ (gRPC)
+		// 3. Обращение к ИИ (gRPC)
 		// В реальном коде здесь будет: aiClient.ParseSkills(ctx, &proto.ParseRequest{Text: req.UserInput})
-		// Пока симулируем, что ИИ проанализировал текст и решил добавить навык "PostgreSQL" (ID: 30)
+		// Пока симулируем, что ИИ проанализировал текст и решил добавить навык (ID: 30)
 		aiSuggestedSkillIDs := []int64{30}
 
-		log.Printf("Пользователь написал: '%s'. ИИ предложил навыки: %v\n", req.UserInput, aiSuggestedSkillIDs)
+		log.Printf("Пользователь #%d написал: '%s'. ИИ предложил навыки: %v\n", userID, req.UserInput, aiSuggestedSkillIDs)
 
-		// 3. Сохраняем новые навыки в таблицу прогресса пользователя
+		// 4. Сохраняем новые навыки в таблицу прогресса пользователя со статусом по CHECK-ограничению
 		for _, skillID := range aiSuggestedSkillIDs {
-			// Используем ON CONFLICT DO NOTHING, чтобы не перезаписать текущий прогресс,
-			// если этот навык у пользователя уже есть.
 			query := `
-				INSERT INTO users_skill_progress (user_id, skill_id, status) 
-				VALUES ($1, $2, 'В процессе')
+				INSERT INTO users_skill_progress (user_id, skill_id, status)
+				SELECT $1, id, 'in_progress'
+				FROM skills
+				WHERE id = $2
 				ON CONFLICT (user_id, skill_id) DO NOTHING
 			`
 			_, err := db.Exec(query, userID, skillID)
@@ -154,7 +158,7 @@ func HandleOnboarding(db *sqlx.DB) http.HandlerFunc {
 			}
 		}
 
-		// 4. Отдаем успешный ответ фронтенду
+		// 5. Отдаем успешный ответ фронтенду
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status": "success", "message": "Профиль успешно обновлен"}`))
